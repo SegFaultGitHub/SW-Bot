@@ -1,6 +1,6 @@
 var request = require("request");
 
-var baseUrl = "http://summonerswar.wikia.com/wiki/";
+var baseUrl = "http://summonerswar.wikia.com/wiki/Special:Search?query=";
 
 module.exports = function(callback) {
 	function mob(name, callback) {

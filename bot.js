@@ -1,7 +1,8 @@
+GLOBAL.logger = require("winston");
+GLOBAL.config = require("./config.json");
+
 var Discord = require("discord.io");
-var logger = require("winston");
 var auth = require("./auth.json");
-var config = require("./config.json");
 var async = require("async");
 var redis = require("redis");
 var merge = require("merge");
@@ -9,7 +10,7 @@ var merge = require("merge");
 libs = {};
 // Initilize libs
 async.parallel({
-	sw: require("./SWApi.js")
+	commands: require("./commands.js")
 }, function(err, results) {
 	libs = merge(results, libs);
 });
@@ -22,12 +23,12 @@ logger.add(logger.transports.Console, {
 logger.level = "debug";
 
 // Initialize Discord Bot
-var discordClient = new Discord.Client({
+GLOBAL.discordClient = new Discord.Client({
 	token: auth.token,
 	autorun: true
 });
-var botConfig = config.botConfig;
-var redisClient = redis.createClient({
+GLOBAL.botConfig = config.botConfig;
+GLOBAL.redisClient = redis.createClient({
 	host: config.redis.host,
 	port: config.redis.port
 });
@@ -59,6 +60,7 @@ function messageListener(user, userID, channelID, message, evt) {
 
 	loweredMessage = message.toLowerCase();
 	trimedMessage = message.trim();
+	trimedMessage = message.replace(/\s+/, " ");
 	var redisKey = evt.d.author.username + "#" + evt.d.author.discriminator;
 
 	async.waterfall([
@@ -70,6 +72,9 @@ function messageListener(user, userID, channelID, message, evt) {
 				},
 				function(callback) {
 					redisClient.hsetnx(redisKey, "lastMessage", 0, callback);
+				},
+				function(callback) {
+					redisClient.hset(redisKey, "id", userID, callback);
 				}
 			], function(err) {
 				if (err) return callback(err);
@@ -84,9 +89,21 @@ function messageListener(user, userID, channelID, message, evt) {
 					redisClient.hget(redisKey, "messages", callback);
 				},
 				function(messages, callback) {
-					redisClient.hset(redisKey, "messages", Number(messages) + 1);
+					redisClient.hset(redisKey, "messages", Number(messages) + 1, callback);
 				}
-			], callback);
+			], function(err) {
+				if (err) return callback(err);
+				return callback();
+			});
+		},
+
+		//commands:
+		function(callback) {
+			if (trimedMessage.substring(0, botConfig.prefix.length) === botConfig.prefix) {
+				libs.commands.executeCommand(user, userID, channelID, message, evt, callback);
+			} else {
+				return callback();
+			}
 		}
 	], function(err) {
 		if (err) logger.error(err);
@@ -99,14 +116,3 @@ discordClient.on("ready", function(evt) {
 });
 
 discordClient.on("message", messageListener);
-
-async.waterfall([
-	function (callback) {
-		libs.sw.mob("ritesh", callback);
-	},
-	function(res, callback) {
-		logger.info("Coucou");
-		logger.info(res.headers.age);
-		return callback();
-	}
-]);

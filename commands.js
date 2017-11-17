@@ -8,16 +8,22 @@ module.exports = function(callback) {
 					return callback(null, {
 						type: "MISUSED"
 					});
+				args = args.filter(function(elem, index, self) {
+				    return index == self.indexOf(elem);
+				});
 				async.eachSeries(args, function(redisKey, callback) {
 					async.waterfall([
 						function(callback) {
 							return redisClient.hgetall(redisKey, callback);
 						},
 						function(redis, callback) {
-							var str = "no data";
-							if (redis) str = JSON.stringify(redis);
-							logger.info(redisKey + ": " + str);
-							return callback();
+							discordClient.sendMessage({
+								to: channelID,
+								message: "```\n" + JSON.stringify({
+										key: redisKey,
+										value: redis || null
+									}, null, 2) + "\n```"
+							}, callback);
 						}
 					], callback);
 				}, function(err) {
@@ -27,7 +33,7 @@ module.exports = function(callback) {
 					});
 				});
 			},
-			help: "Affiche les données redis demandées"
+			help: "!redis KEY [KEY ...]{ret}Affiche les données redis demandées"
 		},
 		mob: {
 			func: function(user, userID, channelID, message, evt, args, callback) {
@@ -39,7 +45,7 @@ module.exports = function(callback) {
 					type: "GOOD"
 				});
 			},
-			help: "Affiche les informations sur le monstre demandé{ret}!mob <nom du mob>"
+			help: "!mob MOB_NAME{ret}Affiche les informations sur le monstre demandé"
 		},
 		help: {
 			func: function(user, userID, channelID, message, evt, args, callback) {
@@ -48,7 +54,7 @@ module.exports = function(callback) {
 				else
 					sendHelpMessage(channelID, args, callback);
 			},
-			help: "Affiche les informations sur les commandes"
+			help: "!help [COMMAND ...]{ret}Affiche les informations sur les commandes demandées"
 		}
 	};
 

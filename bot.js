@@ -10,7 +10,8 @@ var merge = require("merge");
 libs = {};
 // Initilize libs
 async.parallel({
-	commands: require("./commands.js")
+	commands: require("./commands.js"),
+	sw: require("./SWApi.js")
 }, function(err, results) {
 	libs = merge(results, libs);
 });
@@ -89,7 +90,13 @@ function messageListener(user, userID, channelID, message, evt) {
 					redisClient.hget(redisKey, "messages", callback);
 				},
 				function(messages, callback) {
-					redisClient.hset(redisKey, "messages", Number(messages) + 1, callback);
+					redisClient.hset(redisKey, "messages", Number(messages) + 1, function(err) {
+						if (err) return callback(err);
+						return callback();
+					});
+				},
+				function(callback) {
+					redisClient.hset(redisKey, "lastMessage", now(), callback);
 				}
 			], function(err) {
 				if (err) return callback(err);
@@ -116,3 +123,15 @@ discordClient.on("ready", function(evt) {
 });
 
 discordClient.on("message", messageListener);
+
+async.waterfall([
+	function(callback) {
+		libs.sw.mob("Rite", callback);
+	},
+	function(res, callback) {
+		logger.info(res);
+		return callback();
+	}
+], function(err) {
+	if (err) logger.error(err);
+});

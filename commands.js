@@ -64,15 +64,17 @@ module.exports = function(callback) {
 							});
 						});
 					} else {
-						async.each(res, function(item, callback) {
+						async.concat(res, function(item, callback) {
+							return callback(null, libs.swapi.baseURL + item.href);
+						}, function(err, res) {
 							discordClient.sendMessage({
 								to: channelID,
-								message: "```\n" + libs.swapi.baseURL + item.href + "\n```"
-							}, callback);
-						}, function(err) {
-							if (err) return callback(err);
-							return callback(null, {
-								type: "GOOD"
+								message: "```\n" + res.sort().join("\n") + "\n```"
+							}, function(err) {
+								if (err) return callback(err);
+								return callback(null, {
+									type: "GOOD"
+								});
 							});
 						});
 					}

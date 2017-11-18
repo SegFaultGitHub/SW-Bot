@@ -33,7 +33,8 @@ module.exports = function(callback) {
 					});
 				});
 			},
-			help: "!redis KEY [KEY ...]{ret}Affiche les données redis demandées"
+			help: "!redis KEY [KEY ...]{ret}Affiche les données redis demandées",
+			devOnly: true
 		},
 		mob: {
 			func: function(user, userID, channelID, message, evt, args, callback) {
@@ -85,9 +86,9 @@ module.exports = function(callback) {
 		help: {
 			func: function(user, userID, channelID, message, evt, args, callback) {
 				if (args.length === 0)
-					sendHelpMessage(channelID, Object.keys(commands), callback);
+					sendHelpMessage(user, userID, channelID, message, evt, Object.keys(commands), callback);
 				else
-					sendHelpMessage(channelID, args, callback);
+					sendHelpMessage(user, userID, channelID, message, evt, args, callback);
 			},
 			help: "!help [COMMAND ...]{ret}Affiche les informations sur les commandes demandées"
 		},
@@ -95,11 +96,12 @@ module.exports = function(callback) {
 			func: function(user, userID, channelID, message, evt, args, callback) {
 				throw new Error();
 			},
-			help: "!crash{ret}Fait crasher le bot"
+			help: "!crash{ret}Fait crasher le bot",
+			devOnly: true
 		}
 	};
 
-	function sendHelpMessage(channelID, cmds, callback) {
+	function sendHelpMessage(user, userID, channelID, message, evt, cmds, callback) {
 		async.waterfall([
 			function(callback) {
 				return callback(null, cmds.filter(function(cmd) {
@@ -118,6 +120,7 @@ module.exports = function(callback) {
 			function(size, cmds, callback) {
 				var result = "```";
 				cmds.forEach(function(cmd) {
+					if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return;
 					result += "\n*" + cmd + "*" + " ".repeat(size - cmd.length + 2) +
 						commands[cmd].help.replace("{ret}", "\n" + " ".repeat(size + 4)) +
 						"\n";
@@ -135,6 +138,7 @@ module.exports = function(callback) {
 		var args = message.split(" ");
 		var cmd = args[0].substring(botConfig.prefix.length, args[0].length);
 		if (Object.keys(commands).indexOf(cmd) !== -1) {
+			if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return callback();
 			args = args.splice(1);
 			async.waterfall([
 				function(callback) {
@@ -142,7 +146,7 @@ module.exports = function(callback) {
 				},
 				function(retval, callback) {
 					if (retval.type === "MISUSED") {
-						sendHelpMessage(channelID, [cmd], callback);
+						sendHelpMessage(user, userID, channelID, message, evt, channelID, [cmd], callback);
 					} else {
 						return callback();
 					}

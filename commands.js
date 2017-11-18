@@ -153,7 +153,7 @@ module.exports = function(callback) {
 				}
 			], callback);
 		} else {
-			return callback("Command " + command + " does not exist.");
+			return callback("Command " + cmd + " does not exist.");
 		}
 	}
 

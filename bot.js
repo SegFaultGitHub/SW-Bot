@@ -6,14 +6,25 @@ var auth = require("./auth.json");
 var async = require("async");
 var redis = require("redis");
 var merge = require("merge");
+var express = require("express");
 
-libs = {};
+GLOBAL.libs = {};
 // Initilize libs
 async.parallel({
 	commands: require("./commands.js"),
-	sw: require("./SWApi.js")
+	swapi: require("./SWApi.js")
 }, function(err, results) {
 	libs = merge(results, libs);
+});
+
+// Express server
+var app = express();
+var port = 3000;
+app.listen(port, function() {
+	logger.info("Express server listening on port " + port);
+})
+app.get("/ping", function(req, res) {
+	res.send("pong");
 });
 
 // Configure logger settings
@@ -124,14 +135,9 @@ discordClient.on("ready", function(evt) {
 
 discordClient.on("message", messageListener);
 
-async.waterfall([
-	function(callback) {
-		libs.sw.mob("Rite", callback);
-	},
-	function(res, callback) {
-		logger.info(res);
-		return callback();
-	}
-], function(err) {
-	if (err) logger.error(err);
+process.on("uncaughtException", function(err) {
+	discordClient.sendMessage({
+		to: botConfig.adminChannelID,
+		message: "<@" + botConfig.adminUserID + ">```\n" + err.stack + "\n```"
+	});
 });

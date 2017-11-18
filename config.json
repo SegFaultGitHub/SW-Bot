@@ -1,6 +1,8 @@
 {
 	"botConfig": {
-		"prefix": "!"
+		"prefix": "!",
+		"adminChannelID": "381512741166514176",
+		"adminUserID": "101654140672806912"
 	},
 
 	"redis": {

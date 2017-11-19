@@ -1,6 +1,73 @@
 var async = require("async");
 
 module.exports = function(callback) {
+	function colorToHexa(color) {
+		return color[0] * 0x10000 + color[1] * 0x100 + color[2];
+	}
+
+	function buildMobEmbedMessage(item) {
+		var embed = {
+			title: item.title,
+			url: libs.swapi.baseURL + item.href,
+			description: ":star:".repeat(item.mob.stars),
+			thumbnail: {
+				url: item.mob.urls.unawaken
+			},
+			fields: []
+		};
+		switch (item.mob.element) {
+			case "dark":
+				embed.color = colorToHexa([160, 55, 214]);
+				break;
+			case "fire":
+				embed.color = colorToHexa([255, 95, 0]);
+				break;
+			case "water":
+				embed.color = colorToHexa([0, 153, 186]);
+				break;
+			case "light":
+				embed.color = colorToHexa([243, 241, 227]);
+				break;
+			case "wind":
+				embed.color = colorToHexa([255, 195, 0]);
+				break;
+		}
+		embed.fields.push({
+			name: "*Famille*",
+			value: item.mob.family.capitalize(),
+			inline: true
+		});
+		embed.fields.push({
+			name: "*Élément*",
+			value: item.mob.element.capitalize(),
+			inline: true
+		});
+		if (item.mob.urls.awaken) {
+			embed.fields.push({
+				name: "*Nom*",
+				value: item.mob.name.capitalize()
+			});
+			embed.image = {
+				url: item.mob.urls.awaken
+			};
+		}
+		embed.fields.push({
+			name: "*Type*",
+			value: item.mob.type
+		}, {
+			name: "*Statistiques*",
+			value: "• **Points de vie :** " + item.mob.stats[0] + "\n" +
+			"• **Attaque :** " + item.mob.stats[1] + "\n" +
+			"• **Défense :** " + item.mob.stats[2] + "\n" +
+			"• **Vitesse :** " + item.mob.stats[3] + "\n\n" +
+			"• **Taux critique :** " + item.mob.stats[4] + "\n" +
+			"• **Dégâts critiques :** " + item.mob.stats[5] + "\n" +
+			"• **Résistance :** " + item.mob.stats[6] + "\n" +
+			"• **Précision :** " + item.mob.stats[7]
+		});
+		return embed;
+	}
+
 	var commands = {
 		redis: {
 			func: function(user, userID, channelID, message, evt, args, callback) {
@@ -11,25 +78,27 @@ module.exports = function(callback) {
 				args = args.filter(function(elem, index, self) {
 				    return index == self.indexOf(elem);
 				});
+				var redis_ = {};
 				async.eachSeries(args, function(redisKey, callback) {
 					async.waterfall([
 						function(callback) {
 							return redisClient.hgetall(redisKey, callback);
 						},
 						function(redis, callback) {
-							discordClient.sendMessage({
-								to: channelID,
-								message: "```\n" + JSON.stringify({
-										key: redisKey,
-										value: redis || null
-									}, null, 2) + "\n```"
-							}, callback);
+							redis_[redisKey] = redis || null;
+							return callback();
 						}
 					], callback);
 				}, function(err) {
 					if (err) return callback(err);
-					return callback(null, {
-						type:"GOOD"
+					discordClient.sendMessage({
+						to: channelID,
+						message: "```\n" + JSON.stringify(redis_, null, 2) + "\n```"
+					}, function(err) {
+						if (err) return callback(err);
+						return callback(null, {
+							type:"GOOD"
+						});
 					});
 				});
 			},
@@ -74,20 +143,9 @@ module.exports = function(callback) {
 						res.length = Math.min(res.length, 5);
 						async.times(res.length, function(n, callback) {
 							var item = res[n];
-							var embed = {
-								title: item.title,
-								url: libs.swapi.baseURL + item.href,
-								thumbnail: {
-									url: item.mob.urls.unawaken
-								}
-							};
-							if (item.mob.urls.awaken);
-								embed.image = {
-									url: item.mob.urls.awaken
-								};
 							discordClient.sendMessage({
 								to: channelID,
-								embed: embed
+								embed: buildMobEmbedMessage(item)
 							}, function(err) {
 								if (err) return callback(err);
 								return callback(null, {

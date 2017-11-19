@@ -49,6 +49,30 @@ redisClient.select(config.redis.db, function(err) {
 	logger.info("Redis client connected to db" + config.redis.db);
 });
 
+// String prototypes
+String.prototype.reformat = function() {
+	var str = this.toLowerCase();
+	str = str.replace(/(á|à|ä|â)/g, "a");
+	str = str.replace(/(é|è|ë|ê)/g, "e");
+	str = str.replace(/(í|ì|ï|î)/g, "i");
+	str = str.replace(/(ó|ò|ö|ô)/g, "o");
+	str = str.replace(/(ú|ù|ü|û)/g, "u");
+	str = str.replace(/(ÿ)/g, "y");
+	str = str.replace(/(ç)/g, "c");
+	str = str.replace(/\s+/g, " ");
+	return str;
+}
+
+String.prototype.capitalize = function() {
+	var index = 0;
+	var str = this.replace(/\s+/g, " ");
+	str = str.split(" ");
+	str.forEach(function(_, index, array) {
+		array[index] = array[index][0].toUpperCase() + array[index].substring(1);
+	});
+	return str.join(" ");
+}
+
 function discordClientSendMessage(options, callback) {
 	if (!options.to) return callback("No channelID set.");
 	discordClient.sendMessage(options, function(err, res) {

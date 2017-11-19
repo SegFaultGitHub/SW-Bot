@@ -7,17 +7,8 @@ module.exports = function(callback) {
 	var baseURL = "http://summonerswar.wikia.com";
 	var elementRegex = /\((dark|light|water|wind|fire)\)/g;
 
-	String.prototype.reformat = function() {
-		str = this.toLowerCase();
-		str = str.replace(/(á|à|ä|â)/g, "a");
-		str = str.replace(/(é|è|ë|ê)/g, "e");
-		str = str.replace(/(í|ì|ï|î)/g, "i");
-		str = str.replace(/(ó|ò|ö|ô)/g, "o");
-		str = str.replace(/(ú|ù|ü|û)/g, "u");
-		str = str.replace(/(ÿ)/g, "y");
-		str = str.replace(/(ç)/g, "c");
-		str = str.replace(/\s+/g, " ")
-		return str;
+	function _foo(j) {
+		fs.write(fs.openSync("foo2.json", "w"), JSON.stringify(j, null, 2));
 	}
 
 	function searchById(arr, id, callback) {
@@ -40,6 +31,7 @@ module.exports = function(callback) {
 		return callback(null, result);
 	}
 
+	// HTML to JSON
 	function jsonizeURL(url, callback) {
 		async.waterfall([
 			function(callback) {
@@ -71,6 +63,7 @@ module.exports = function(callback) {
 		async.waterfall([
 			function(callback) {
 				async.some([1, 2, 3], function(n, callback) {
+					// Gets page's ETAG
 					async.waterfall([
 						function(callback) {
 							redisClient.hsetnx("etags", baseURL + mobURL + n, "", function(err) {
@@ -109,10 +102,10 @@ module.exports = function(callback) {
 							function(handler, callback) {
 								searchById(handler.dom, "mw-pages", callback);
 							},
-							function(div, callback) {
-								if (!div) return callback(new Error("Category not found")); // Shouldn't happen
+							function(res, callback) {
+								if (!res) return callback(new Error("Category not found"));
 
-								var children = div.children[5].children[0].children[0].children;
+								var children = res.children[5].children[0].children[0].children;
 								mobs = [];
 
 								for (var i = 0; i < children.length; i += 2) {
@@ -124,7 +117,7 @@ module.exports = function(callback) {
 												!reformat.toLowerCase().match(/user:/g)) {
 												var split = reformat.split(elementRegex);
 												toConcat.mob = {};
-												toConcat.mob.type = split[0].trim();
+												toConcat.mob.family = split[0].trim();
 												toConcat.mob.element = split[1].trim();
 												toConcat.mob.name = split[2].substring(split[2].indexOf("-") + 1 || 0).trim();
 												mobs = mobs.concat(toConcat);
@@ -146,7 +139,7 @@ module.exports = function(callback) {
 			},
 			function(mobs, callback) {
 				async.concat(mobs, function(item, callback) {
-					if (item.mob.name.indexOf(name) !== -1 || item.mob.type.indexOf(name) !== -1) return callback(null, item);
+					if (item.mob.name.indexOf(name) !== -1 || item.mob.family.indexOf(name) !== -1) return callback(null, item);
 					else return callback();
 				}, callback);
 			},
@@ -157,10 +150,16 @@ module.exports = function(callback) {
 							jsonizeURL(baseURL + item.href, callback);
 						},
 						function(handler, callback) {
-							searchById(handler.dom, "images", callback);
+							searchById(handler.dom, "images", function(err, res) {
+								if (err) return	callback(err);
+								else return callback(null, handler, res);
+							});
 						},
-						function(div, callback) {
-							var images = div.children[1].children[1].children;
+						// Get images
+						function(handler, res, callback) {
+							if (!res) return callback(new Error("Category not found"));
+
+							var images = res.children[1].children[1].children;
 							fs.write(fs.openSync("search.json", "w"), JSON.stringify(images, null, 2));
 							var unawaken = images[1];
 							item.mob.urls = {};
@@ -169,8 +168,75 @@ module.exports = function(callback) {
 								var awaken = images.length > 2 ? images[2] : null;
 								item.mob.urls.awaken = awaken ? awaken.children[0].attribs.href : null;
 							}
+
+							searchById(handler.dom, "monster_rightcol", function(err, res) {
+								if (err) return	callback(err);
+								else return callback(null, handler, res);
+							});
+						},
+						// Get monster type
+						function(handler, res, callback) {
+							if (!res) return callback(new Error("Category not found"));
+
+							item.mob.type = res.children[1].children[1].children[1].children[1].children[1].raw.trim();
+
+							searchById(handler.dom, "skills", function(err, res) {
+								if (err) return	callback(err);
+								else return callback(null, handler, res);
+							});
+						},
+						// Get monster skills
+						function(handler, res, callback) {
+							if (!res) return callback(new Error("Category not found"));
+
+							searchById(handler.dom, "mw-content-text", function(err, res) {
+								if (err) return	callback(err);
+								else return callback(null, handler, res);
+							});
+						},
+						// Get monster stats and stars
+						function(handler, res, callback) {
+							if (!res) return callback(new Error("Category not found"));
+
+							var stars = res.children[6].children[1].children[1].children[4];
+							if (stars.children) item.mob.stars = Number(stars.children[3].raw[1]);
+							else item.mob.stars = 1;
+
+							item.mob.stats = [];
+
+							var stats = res.children[22].children[1].children;
+							var index = 5;
+							if (item.mob.name) {
+								index = 15;
+							}
+							for (var i = index; i <= index + 4; i += 2) {
+								item.mob.stats.push(stats[i].children[stats[i].children.length - 1].children[0].raw.trim());
+							}
+
+							index = 3;
+							if (item.mob.name) {
+								index = 5;
+							}
+							stats = res.children[30].children[1].children[index].children;
+							index = 1;
+							if (item.mob.name) {
+								index = 2;
+							}
+							for (var i = index; i < index + 5; i++) {
+								if (stats[i].children[0].children) {
+									var toPush = "**" + stats[i].children[0].children[0].raw.trim();
+									if (stats[i].children[1]) {
+										toPush += stats[i].children[1].raw.trim();
+									}
+									toPush += "**";
+								}
+								else var toPush = stats[i].children[0].raw.trim();
+								item.mob.stats.push(toPush);
+							}
+							_foo(stats);
+
 							return callback(null, item);
-						}
+						},
 					], callback);
 				}, callback);
 			}

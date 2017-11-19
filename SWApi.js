@@ -54,7 +54,7 @@ module.exports = function(callback) {
 		], callback);
 	}
 
-	function mob(name, callback) {
+	function mob(name, force, callback) {
 		name = name.reformat();
 		var mobURL = "/wiki/Category:Monsters?page=";
 		var n = 0;
@@ -139,8 +139,13 @@ module.exports = function(callback) {
 			},
 			function(mobs, callback) {
 				async.concat(mobs, function(item, callback) {
-					if (item.mob.name.indexOf(name) !== -1 || item.mob.family.indexOf(name) !== -1) return callback(null, item);
-					else return callback();
+					if (force) {
+						if (item.mob.name === name) return callback(null, item);
+						else return callback();
+					} else {
+						if (item.mob.name.indexOf(name) !== -1 || item.mob.family.indexOf(name) !== -1) return callback(null, item);
+						else return callback();
+					}
 				}, callback);
 			},
 			function(mobs, callback) {
@@ -179,6 +184,8 @@ module.exports = function(callback) {
 							if (!res) return callback(new Error("Category not found"));
 
 							item.mob.type = res.children[1].children[1].children[1].children[1].children[1].raw.trim();
+
+							if (item.mob.name) item.mob.awake = res.children[1].children[1].children[5].children[1].children[1].raw.trim();
 
 							searchById(handler.dom, "skills", function(err, res) {
 								if (err) return	callback(err);
@@ -233,7 +240,6 @@ module.exports = function(callback) {
 								else var toPush = stats[i].children[0].raw.trim();
 								item.mob.stats.push(toPush);
 							}
-							_foo(stats);
 
 							return callback(null, item);
 						},

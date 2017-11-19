@@ -12,7 +12,8 @@ GLOBAL.libs = {};
 // Initilize libs
 async.parallel({
 	commands: require("./commands.js"),
-	swapi: require("./SWApi.js")
+	swapi: require("./SWApi.js"),
+	utils: require("./utils.js")
 }, function(err, results) {
 	libs = merge(results, libs);
 });

@@ -5,6 +5,19 @@
 		"adminUserID": "101654140672806912"
 	},
 
+	"translation": {
+		"fire": "Feu",
+		"water": "Eau",
+		"dark": "Ténèbres",
+		"light": "Lumière",
+		"wind": "Vent",
+
+		"hp": "PV",
+		"attack": "Attaque",
+		"support": "Support",
+		"defense": "Défense"
+	},
+
 	"redis": {
 		"host": "localhost",
 		"port": 6379,

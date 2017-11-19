@@ -39,13 +39,19 @@ module.exports = function(callback) {
 		});
 		embed.fields.push({
 			name: "*Élément*",
-			value: item.mob.element.capitalize(),
+			value: libs.utils.translate(item.mob.element),
 			inline: true
 		});
 		if (item.mob.urls.awaken) {
 			embed.fields.push({
 				name: "*Nom*",
-				value: item.mob.name.capitalize()
+				value: item.mob.name.capitalize(),
+				inline: true
+			});
+			embed.fields.push({
+				name: "*Éveil*",
+				value: item.mob.awake,
+				inline: true
 			});
 			embed.image = {
 				url: item.mob.urls.awaken
@@ -53,7 +59,7 @@ module.exports = function(callback) {
 		}
 		embed.fields.push({
 			name: "*Type*",
-			value: item.mob.type
+			value: libs.utils.translate(item.mob.type)
 		}, {
 			name: "*Statistiques*",
 			value: "• **Points de vie :** " + item.mob.stats[0] + "\n" +
@@ -127,7 +133,12 @@ module.exports = function(callback) {
 					return callback(null, {
 						type: "MISUSED"
 					});
-				libs.swapi.mob(args.join(" "), function(err, res) {
+				var force = false;
+				if (args[0] === "--name") {
+					args = args.splice(1);
+					force = true;
+				}
+				libs.swapi.mob(args.join(" "), force, function(err, res) {
 					if (err) return callback(err);
 					else if (res.length === 0) {
 						discordClient.sendMessage({
@@ -156,7 +167,7 @@ module.exports = function(callback) {
 					}
 				});
 			},
-			help: "!mob MOB_NAME{ret}Affiche les informations sur le monstre demandé"
+			help: "!mob [--name] MOB_NAME{ret}Affiche les informations sur le monstre demandé"
 		},
 		help: {
 			func: function(user, userID, channelID, message, evt, args, callback) {

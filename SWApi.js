@@ -5,6 +5,7 @@ var fs = require("fs");
 
 module.exports = function(callback) {
 	var baseURL = "http://summonerswar.wikia.com";
+	var elementRegex = /\((dark|light|water|wind|fire)\)/g;
 
 	String.prototype.reformat = function() {
 		str = this.toLowerCase();
@@ -44,55 +45,104 @@ module.exports = function(callback) {
 		var mobURL = "/wiki/Category:Monsters?page=";
 		var n = 0;
 
-		async.concat([1, 2, 3], function(n, callback) {
-			async.waterfall([
-				function(callback) {
-					request.get(baseURL + mobURL + n, function(err, res, body) {
-						if (err) return callback(err);
-						else return	callback(null, body);
-					});
-				},
-				function(body, callback) {
-					var handler = new htmlparser.DefaultHandler(function (err, dom) {
-						if (err) return callback(err);
-						else return callback(null, handler);
-					});
-					var parser = new htmlparser.Parser(handler);
-					parser.parseComplete(body);
-				},
-				function(handler, callback) {
-					searchById(handler.dom, "mw-pages", callback);
-				},
-				function(div, callback) {
-					if (!div) return callback(new Error("Category not found")); // Shouldn't happen
-
-					var children = div.children[5].children[0].children[0].children;
-					var mobs = [];
-
-					for (var i = 0; i < children.length; i += 2) {
-						for (var j = 2; j < children[i].children.length; j += 3) {
-							for (var k = 0; k < children[i].children[j].children.length; k += 2) {
-								var toConcat = children[i].children[j].children[k].children[0].attribs;
-								toConcat.lowerTitle = toConcat.title.reformat();
-								if (toConcat.lowerTitle.match(/\((dark|light|water|wind|fire)\)/g) &&
-									!toConcat.lowerTitle.toLowerCase().match(/user:/g)) {
-									mobs = mobs.concat(toConcat);
-								}
-							}
+		var s = new Date().getTime();
+		async.waterfall([
+			function(callback) {
+				async.some([1, 2, 3], function(n, callback) {
+					async.waterfall([
+						function(callback) {
+							redisClient.hsetnx("etags", baseURL + mobURL + n, "", function(err) {
+								if (err) return callback(err);
+								return callback();
+							});
+						},
+						function(callback) {
+							redisClient.hget("etags", baseURL + mobURL + n, callback);
+						},
+						function(etag, callback) {
+							request.head(baseURL + mobURL + n, function(err, res, body) {
+								if (err) return callback(err);
+								else return callback(null, etag !== res.headers.etag)
+							});
 						}
-					}
+					], callback);
+				}, callback);
+			},
+			function(outdated, callback) {
+				redisClient.get("mobs", function(err, mobs) {
+					if (err) return	callback(err);
+					else if (mobs) return callback(null, JSON.parse(mobs), outdated);
+					else return callback(null, null, outdated)
+				})
+			},
+			function(mobs, outdated, callback) {
+				if (!outdated && mobs) return callback(null, mobs);
+				else {
+					logger.info("retrieving data");
+					async.concat([1, 2, 3], function(n, callback) {
+						async.waterfall([
+							function(callback) {
+								request.get(baseURL + mobURL + n, function(err, res, body) {
+									if (err) return callback(err);
+									redisClient.hset("etags", baseURL + mobURL + n, res.headers.etag, function(err) {
+										if (err) return callback(err);
+										return callback(null, body);
+									});
+								});
+							},
+							function(body, callback) {
+								var handler = new htmlparser.DefaultHandler(function (err, dom) {
+									if (err) return callback(err);
+									else return callback(null, handler);
+								});
+								var parser = new htmlparser.Parser(handler);
+								parser.parseComplete(body);
+							},
+							function(handler, callback) {
+								searchById(handler.dom, "mw-pages", callback);
+							},
+							function(div, callback) {
+								if (!div) return callback(new Error("Category not found")); // Shouldn't happen
 
-					return callback(null, mobs);
+								var children = div.children[5].children[0].children[0].children;
+								mobs = [];
+
+								for (var i = 0; i < children.length; i += 2) {
+									for (var j = 2; j < children[i].children.length; j += 3) {
+										for (var k = 0; k < children[i].children[j].children.length; k += 2) {
+											var toConcat = children[i].children[j].children[k].children[0].attribs;
+											var reformat = toConcat.title.reformat();
+											if (reformat.match(elementRegex) &&
+												!reformat.toLowerCase().match(/user:/g)) {
+												var split = reformat.split(elementRegex);
+												toConcat.mob = {};
+												toConcat.mob.type = split[0].trim();
+												toConcat.mob.element = split[1].trim();
+												toConcat.mob.name = split[2].substring(split[2].indexOf("-") + 1 || 0).trim();
+												mobs = mobs.concat(toConcat);
+											}
+										}
+									}
+								}
+
+								return callback(null, mobs);
+							}
+						], callback);
+					}, function(err, mobs) {
+						if (err) return callback(err);
+						redisClient.set("mobs", JSON.stringify(mobs), function(err) {
+							return callback(null, mobs);
+						});
+					});
 				}
-			], callback);
-		}, function(err, res) {
-			if (err) return callback(err);
-
-			async.concat(res, function(item, callback) {
-				if (item.lowerTitle.indexOf(name) !== -1) return callback(null, item);
-				else return callback();
-			}, callback);
-		});
+			},
+			function(mobs, callback) {
+				async.concat(mobs, function(item, callback) {
+					if (item.mob.name.indexOf(name) !== -1 || item.mob.type.indexOf(name) !== -1) return callback(null, item);
+					else return callback();
+				}, callback);
+			}
+		], callback);
 	}
 
 	return callback(null, {

@@ -33,7 +33,23 @@ module.exports = function(callback) {
 					});
 				});
 			},
-			help: "!redis KEY [KEY ...]{ret}Affiche les données redis demandées",
+			help: "!redis KEY [KEY ...]{ret}Affiche les valeurs redis demandées",
+			devOnly: true
+		},
+		del: {
+			func: function(user, userID, channelID, message, evt, args, callback) {
+				if (args.length !== 1)
+					return callback(null, {
+						type: "MISUSED"
+					});
+				else redisClient.del(args[0], function(err) {
+					if (err) return callback(err);
+					return callback(null, {
+						type: "GOOD"
+					})
+				});
+			},
+			help: "!del KEY{ret}Supprime la valeur redis spécifiée",
 			devOnly: true
 		},
 		mob: {
@@ -54,28 +70,21 @@ module.exports = function(callback) {
 								type: "GOOD"
 							});
 						});
-					} else if (res.length === 1) {
+					} else {
 						discordClient.sendMessage({
 							to: channelID,
-							message: "```\n" + libs.swapi.baseURL + res[0].href + "\n```"
+							embed: {
+								fields: res.map(function(item) {
+									return {
+										name: item.title,
+										value: JSON.stringify(item.mob, null, 2) + "\n[Lien](" + (libs.swapi.baseURL + item.href).replace(")", "\\)") + ")"
+									}
+								})
+							}
 						}, function(err) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
-							});
-						});
-					} else {
-						async.concat(res, function(item, callback) {
-							return callback(null, libs.swapi.baseURL + item.href);
-						}, function(err, res) {
-							discordClient.sendMessage({
-								to: channelID,
-								message: "```\n" + res.sort().join("\n") + "\n```"
-							}, function(err) {
-								if (err) return callback(err);
-								return callback(null, {
-									type: "GOOD"
-								});
 							});
 						});
 					}

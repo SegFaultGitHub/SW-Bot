@@ -2,7 +2,6 @@ GLOBAL.logger = require("winston");
 GLOBAL.config = require("./config.json");
 
 var Discord = require("discord.io");
-var auth = require("./auth.json");
 var async = require("async");
 var redis = require("redis");
 var merge = require("merge");
@@ -37,7 +36,7 @@ logger.level = "debug";
 
 // Initialize Discord Bot
 GLOBAL.discordClient = new Discord.Client({
-	token: auth.token,
+	token: process.env.DISCORD_TOKEN,
 	autorun: true
 });
 GLOBAL.botConfig = config.botConfig;

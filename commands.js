@@ -5,6 +5,13 @@ module.exports = function(callback) {
 		return color[0] * 0x10000 + color[1] * 0x100 + color[2];
 	}
 
+	function footer() {
+		return {
+			icon_url: "https://camo.githubusercontent.com/7710b43d0476b6f6d4b4b2865e35c108f69991f3/68747470733a2f2f7777772e69636f6e66696e6465722e636f6d2f646174612f69636f6e732f6f637469636f6e732f313032342f6d61726b2d6769746875622d3235362e706e67",
+			text: "[GitHub](https://github.com/SegFaultGitHub/SW-Bot)"
+		}
+	}
+
 	function buildMobEmbedMessage(item) {
 		var embed = {
 			title: item.title,
@@ -71,6 +78,7 @@ module.exports = function(callback) {
 			"• **Résistance :** " + item.mob.stats[6] + "\n" +
 			"• **Précision :** " + item.mob.stats[7]
 		});
+
 		return embed;
 	}
 

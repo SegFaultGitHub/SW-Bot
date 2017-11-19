@@ -40,6 +40,28 @@ module.exports = function(callback) {
 		return callback(null, result);
 	}
 
+	function jsonizeURL(url, callback) {
+		async.waterfall([
+			function(callback) {
+				request.get(url, function(err, res, body) {
+					if (err) return callback(err);
+					redisClient.hset("etags", url, res.headers.etag, function(err) {
+						if (err) return callback(err);
+						return callback(null, body);
+					});
+				});
+			},
+			function(body, callback) {
+				var handler = new htmlparser.DefaultHandler(function (err, dom) {
+					if (err) return callback(err);
+					else return callback(null, handler);
+				});
+				var parser = new htmlparser.Parser(handler);
+				parser.parseComplete(body);
+			}
+		], callback);
+	}
+
 	function mob(name, callback) {
 		name = name.reformat();
 		var mobURL = "/wiki/Category:Monsters?page=";
@@ -82,21 +104,7 @@ module.exports = function(callback) {
 					async.concat([1, 2, 3], function(n, callback) {
 						async.waterfall([
 							function(callback) {
-								request.get(baseURL + mobURL + n, function(err, res, body) {
-									if (err) return callback(err);
-									redisClient.hset("etags", baseURL + mobURL + n, res.headers.etag, function(err) {
-										if (err) return callback(err);
-										return callback(null, body);
-									});
-								});
-							},
-							function(body, callback) {
-								var handler = new htmlparser.DefaultHandler(function (err, dom) {
-									if (err) return callback(err);
-									else return callback(null, handler);
-								});
-								var parser = new htmlparser.Parser(handler);
-								parser.parseComplete(body);
+								jsonizeURL(baseURL + mobURL + n, callback)
 							},
 							function(handler, callback) {
 								searchById(handler.dom, "mw-pages", callback);
@@ -140,6 +148,30 @@ module.exports = function(callback) {
 				async.concat(mobs, function(item, callback) {
 					if (item.mob.name.indexOf(name) !== -1 || item.mob.type.indexOf(name) !== -1) return callback(null, item);
 					else return callback();
+				}, callback);
+			},
+			function(mobs, callback) {
+				async.concat(mobs, function(item, callback) {
+					async.waterfall([
+						function(callback) {
+							jsonizeURL(baseURL + item.href, callback);
+						},
+						function(handler, callback) {
+							searchById(handler.dom, "images", callback);
+						},
+						function(div, callback) {
+							var images = div.children[1].children[1].children;
+							fs.write(fs.openSync("search.json", "w"), JSON.stringify(images, null, 2));
+							var unawaken = images[1];
+							item.mob.urls = {};
+							item.mob.urls.unawaken = unawaken.children[0].attribs.href;
+							if (item.mob.name) {
+								var awaken = images.length > 2 ? images[2] : null;
+								item.mob.urls.awaken = awaken ? awaken.children[0].attribs.href : null;
+							}
+							return callback(null, item);
+						}
+					], callback);
 				}, callback);
 			}
 		], callback);

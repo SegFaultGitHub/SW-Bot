@@ -71,20 +71,28 @@ module.exports = function(callback) {
 							});
 						});
 					} else {
-						discordClient.sendMessage({
-							to: channelID,
-							embed: {
-								fields: res.map(function(item) {
-									return {
-										name: item.title,
-										value: JSON.stringify(item.mob, null, 2) + "\n[Lien](" + (libs.swapi.baseURL + item.href).replace(")", "\\)") + ")"
-									}
-								})
-							}
-						}, function(err) {
-							if (err) return callback(err);
-							return callback(null, {
-								type: "GOOD"
+						res.length = Math.min(res.length, 5);
+						async.times(res.length, function(n, callback) {
+							var item = res[n];
+							var embed = {
+								title: item.title,
+								url: libs.swapi.baseURL + item.href,
+								thumbnail: {
+									url: item.mob.urls.unawaken
+								}
+							};
+							if (item.mob.urls.awaken);
+								embed.image = {
+									url: item.mob.urls.awaken
+								};
+							discordClient.sendMessage({
+								to: channelID,
+								embed: embed
+							}, function(err) {
+								if (err) return callback(err);
+								return callback(null, {
+									type: "GOOD"
+								});
 							});
 						});
 					}

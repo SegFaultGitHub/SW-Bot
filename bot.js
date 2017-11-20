@@ -23,8 +23,19 @@ var port = 3000;
 app.listen(port, function() {
 	logger.info("Express server listening on port " + port);
 });
-app.get("/ping", function(req, res) {
-	res.send("pong");
+app.get("/ping/:family/:element/:channelID", function(req, res) {
+	async.waterfall([
+		function(callback) {
+			redisClient.get("mob:" + req.params.family + ":" + req.params.element, callback);
+		}
+	], function (err, item) {
+		discordClient.sendMessage({
+			to: req.params.channelID,
+			embed: libs.commands.buildMobEmbedMessage(JSON.parse(item))
+		}, function (err) {
+			res.send("pong");
+		});
+	});
 });
 
 // Configure logger settings
@@ -155,6 +166,12 @@ function messageListener(user, userID, channelID, message, evt) {
 
 discordClient.on("ready", function(evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
+	discordClient.sendMessage({
+		to: botConfig.adminChannelID,
+		message: "[Clique](http://localhost:3000/ping/phoenix/wind/" + botConfig.adminChannelID + ")"
+	}, function (err) {
+
+	});
 });
 
 discordClient.on("message", messageListener);
@@ -165,3 +182,5 @@ process.on("uncaughtException", function(err) {
 		message: "<@" + botConfig.adminUserID + ">```\n" + err.stack + "\n```"
 	});
 });
+
+// libs.swapi.mob("ritesh", false, function() { });

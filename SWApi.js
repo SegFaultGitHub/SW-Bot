@@ -57,12 +57,6 @@ module.exports = function(callback) {
 	function isOutdated(url, callback) {
 		async.waterfall([
 			function(callback) {
-				redisClient.hsetnx("etags", url, "", function(err) {
-					if (err) return callback(err);
-					return callback();
-				});
-			},
-			function(callback) {
 				redisClient.hget("etags", url, callback);
 			},
 			function(etag, callback) {
@@ -163,7 +157,7 @@ module.exports = function(callback) {
 							isOutdated(baseURL + item.href, callback);
 						},
 						function (outdated, callback) {
-							redisClient.hget("mob", item.mob.name, function (err, mob) {
+							redisClient.get("mob:" + item.mob.family + ":" + item.mob.element, function (err, mob) {
 								if (err) return callback(err);
 								else if (mob) return callback(null, JSON.parse(mob), outdated);
 								else return callback(null, null, outdated);
@@ -271,7 +265,7 @@ module.exports = function(callback) {
 									},
 									// Save mob to redis for later uses
 									function(callback) {
-										redisClient.hset("mob", item.mob.name, JSON.stringify(item), function(err) {
+										redisClient.set("mob:" + item.mob.family + ":" + item.mob.element, JSON.stringify(item), function(err) {
 											if (err) return callback(err);
 											return callback(null, item);
 										});

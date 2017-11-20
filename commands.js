@@ -252,6 +252,7 @@ module.exports = function(callback) {
 	}
 
 	return callback(null, {
-		executeCommand: executeCommand
+		executeCommand: executeCommand,
+		buildMobEmbedMessage: buildMobEmbedMessage
 	});
 };

@@ -54,6 +54,26 @@ module.exports = function(callback) {
 		], callback);
 	}
 
+	function isOutdated(url, callback) {
+		async.waterfall([
+			function(callback) {
+				redisClient.hsetnx("etags", url, "", function(err) {
+					if (err) return callback(err);
+					return callback();
+				});
+			},
+			function(callback) {
+				redisClient.hget("etags", url, callback);
+			},
+			function(etag, callback) {
+				request.head(url, function(err, res, body) {
+					if (err) return callback(err);
+					else return callback(null, etag !== res.headers.etag);
+				});
+			}
+		], callback);
+	}
+
 	function mob(name, force, callback) {
 		name = name.reformat();
 		var mobURL = "/wiki/Category:Monsters?page=";
@@ -64,23 +84,7 @@ module.exports = function(callback) {
 			function(callback) {
 				async.some([1, 2, 3], function(n, callback) {
 					// Gets page's ETAG
-					async.waterfall([
-						function(callback) {
-							redisClient.hsetnx("etags", baseURL + mobURL + n, "", function(err) {
-								if (err) return callback(err);
-								return callback();
-							});
-						},
-						function(callback) {
-							redisClient.hget("etags", baseURL + mobURL + n, callback);
-						},
-						function(etag, callback) {
-							request.head(baseURL + mobURL + n, function(err, res, body) {
-								if (err) return callback(err);
-								else return callback(null, etag !== res.headers.etag);
-							});
-						}
-					], callback);
+					isOutdated(baseURL + mobURL + n, callback);
 				}, callback);
 			},
 			function(outdated, callback) {
@@ -91,9 +95,12 @@ module.exports = function(callback) {
 				});
 			},
 			function(mobs, outdated, callback) {
-				if (!outdated && mobs) return callback(null, mobs);
+				if (!outdated && mobs) {
+					logger.info("Using cached data for the mobs");
+					return callback(null, mobs);
+				}
 				else {
-					logger.info("retrieving data");
+					logger.info("Retrieving data for the mobs");
 					async.concat([1, 2, 3], function(n, callback) {
 						async.waterfall([
 							function(callback) {
@@ -153,98 +160,125 @@ module.exports = function(callback) {
 				async.concat(mobs, function(item, callback) {
 					async.waterfall([
 						function(callback) {
-							jsonizeURL(baseURL + item.href, callback);
+							isOutdated(baseURL + item.href, callback);
 						},
-						function(handler, callback) {
-							searchById(handler.dom, "images", function(err, res) {
-								if (err) return	callback(err);
-								else return callback(null, handler, res);
+						function (outdated, callback) {
+							redisClient.hget("mob", item.mob.name, function (err, mob) {
+								if (err) return callback(err);
+								else if (mob) return callback(null, JSON.parse(mob), outdated);
+								else return callback(null, null, outdated);
 							});
 						},
-						// Get images
-						function(handler, res, callback) {
-							if (!res) return callback(new Error("Category not found"));
-
-							var images = res.children[1].children[1].children;
-							fs.write(fs.openSync("search.json", "w"), JSON.stringify(images, null, 2));
-							var unawaken = images[1];
-							item.mob.urls = {};
-							item.mob.urls.unawaken = unawaken.children[0].attribs.href;
-							if (item.mob.name) {
-								var awaken = images.length > 2 ? images[2] : null;
-								item.mob.urls.awaken = awaken ? awaken.children[0].attribs.href : null;
+						function(mob, outdated, callback) {
+							if (!outdated && mob) {
+								logger.info("Using cached data for the mob: " + item.mob.name);
+								return callback(null, mob);
 							}
+							else {
+								logger.info("Retrieving data for the mob: " + item.mob.name);
+								async.waterfall([
+									function(callback) {
+										jsonizeURL(baseURL + item.href, callback);
+									},
+									function(handler, callback) {
+										searchById(handler.dom, "images", function(err, res) {
+											if (err) return	callback(err);
+											else return callback(null, handler, res);
+										});
+									},
+									// Get images
+									function(handler, res, callback) {
+										if (!res) return callback(new Error("Category not found"));
 
-							searchById(handler.dom, "monster_rightcol", function(err, res) {
-								if (err) return	callback(err);
-								else return callback(null, handler, res);
-							});
-						},
-						// Get monster type
-						function(handler, res, callback) {
-							if (!res) return callback(new Error("Category not found"));
+										var images = res.children[1].children[1].children;
+										var unawaken = images[1];
+										item.mob.urls = {};
+										item.mob.urls.unawaken = unawaken.children[0].attribs.href;
+										if (item.mob.name) {
+											var awaken = images.length > 2 ? images[2] : null;
+											item.mob.urls.awaken = awaken ? awaken.children[0].attribs.href : null;
+										}
 
-							item.mob.type = res.children[1].children[1].children[1].children[1].children[1].raw.trim();
+										searchById(handler.dom, "monster_rightcol", function(err, res) {
+											if (err) return	callback(err);
+											else return callback(null, handler, res);
+										});
+									},
+									// Get monster type
+									function(handler, res, callback) {
+										if (!res) return callback(new Error("Category not found"));
 
-							if (item.mob.name) item.mob.awake = res.children[1].children[1].children[5].children[1].children[1].raw.trim();
+										item.mob.type = res.children[1].children[1].children[1].children[1].children[1].raw.trim();
 
-							searchById(handler.dom, "skills", function(err, res) {
-								if (err) return	callback(err);
-								else return callback(null, handler, res);
-							});
-						},
-						// Get monster skills
-						function(handler, res, callback) {
-							if (!res) return callback(new Error("Category not found"));
+										if (item.mob.name) item.mob.awake = res.children[1].children[1].children[5].children[1].children[1].raw.trim();
 
-							searchById(handler.dom, "mw-content-text", function(err, res) {
-								if (err) return	callback(err);
-								else return callback(null, handler, res);
-							});
-						},
-						// Get monster stats and stars
-						function(handler, res, callback) {
-							if (!res) return callback(new Error("Category not found"));
+										searchById(handler.dom, "skills", function(err, res) {
+											if (err) return	callback(err);
+											else return callback(null, handler, res);
+										});
+									},
+									// Get monster skills
+									function(handler, res, callback) {
+										if (!res) return callback(new Error("Category not found"));
 
-							var stars = res.children[6].children[1].children[1].children[4];
-							if (stars.children) item.mob.stars = Number(stars.children[3].raw[1]);
-							else item.mob.stars = 1;
+										searchById(handler.dom, "mw-content-text", function(err, res) {
+											if (err) return	callback(err);
+											else return callback(null, handler, res);
+										});
+									},
+									// Get monster stats and stars
+									function(handler, res, callback) {
+										if (!res) return callback(new Error("Category not found"));
 
-							item.mob.stats = [];
+										var stars = res.children[6].children[1].children[1].children[4];
+										if (stars.children) item.mob.stars = Number(stars.children[3].raw[1]);
+										else item.mob.stars = 1;
 
-							var stats = res.children[22].children[1].children;
-							var index = 5;
-							if (item.mob.name) {
-								index = 15;
-							}
-							for (var i = index; i <= index + 4; i += 2) {
-								item.mob.stats.push(stats[i].children[stats[i].children.length - 1].children[0].raw.trim());
-							}
+										item.mob.stats = [];
 
-							index = 3;
-							if (item.mob.name) {
-								index = 5;
-							}
-							stats = res.children[30].children[1].children[index].children;
-							index = 1;
-							if (item.mob.name) {
-								index = 2;
-							}
-							for (i = index; i < index + 5; i++) {
-								var toPush;
-								if (stats[i].children[0].children) {
-									toPush = "**" + stats[i].children[0].children[0].raw.trim();
-									if (stats[i].children[1]) {
-										toPush += stats[i].children[1].raw.trim();
+										var stats = res.children[22].children[1].children;
+										var index = 5;
+										if (item.mob.name) {
+											index = 15;
+										}
+										for (var i = index; i <= index + 4; i += 2) {
+											item.mob.stats.push(stats[i].children[stats[i].children.length - 1].children[0].raw.trim());
+										}
+
+										index = 3;
+										if (item.mob.name) {
+											index = 5;
+										}
+										stats = res.children[30].children[1].children[index].children;
+										index = 1;
+										if (item.mob.name) {
+											index = 2;
+										}
+										for (i = index; i < index + 5; i++) {
+											var toPush;
+											if (stats[i].children[0].children) {
+												toPush = "**" + stats[i].children[0].children[0].raw.trim();
+												if (stats[i].children[1]) {
+													toPush += stats[i].children[1].raw.trim();
+												}
+												toPush += "**";
+											}
+											else toPush = stats[i].children[0].raw.trim();
+											item.mob.stats.push(toPush);
+										}
+
+										return callback();
+									},
+									// Save mob to redis for later uses
+									function(callback) {
+										redisClient.hset("mob", item.mob.name, JSON.stringify(item), function(err) {
+											if (err) return callback(err);
+											return callback(null, item);
+										});
 									}
-									toPush += "**";
-								}
-								else toPush = stats[i].children[0].raw.trim();
-								item.mob.stats.push(toPush);
+								], callback);
 							}
-
-							return callback(null, item);
-						},
+						}
 					], callback);
 				}, callback);
 			}

@@ -77,7 +77,7 @@ module.exports = function(callback) {
 						function(etag, callback) {
 							request.head(baseURL + mobURL + n, function(err, res, body) {
 								if (err) return callback(err);
-								else return callback(null, etag !== res.headers.etag)
+								else return callback(null, etag !== res.headers.etag);
 							});
 						}
 					], callback);
@@ -87,8 +87,8 @@ module.exports = function(callback) {
 				redisClient.get("mobs", function(err, mobs) {
 					if (err) return	callback(err);
 					else if (mobs) return callback(null, JSON.parse(mobs), outdated);
-					else return callback(null, null, outdated)
-				})
+					else return callback(null, null, outdated);
+				});
 			},
 			function(mobs, outdated, callback) {
 				if (!outdated && mobs) return callback(null, mobs);
@@ -97,7 +97,7 @@ module.exports = function(callback) {
 					async.concat([1, 2, 3], function(n, callback) {
 						async.waterfall([
 							function(callback) {
-								jsonizeURL(baseURL + mobURL + n, callback)
+								jsonizeURL(baseURL + mobURL + n, callback);
 							},
 							function(handler, callback) {
 								searchById(handler.dom, "mw-pages", callback);
@@ -116,10 +116,11 @@ module.exports = function(callback) {
 											if (reformat.match(elementRegex) &&
 												!reformat.toLowerCase().match(/user:/g)) {
 												var split = reformat.split(elementRegex);
-												toConcat.mob = {};
-												toConcat.mob.family = split[0].trim();
-												toConcat.mob.element = split[1].trim();
-												toConcat.mob.name = split[2].substring(split[2].indexOf("-") + 1 || 0).trim();
+												toConcat.mob = {
+													family: split[0].trim(),
+													element: split[1].trim(),
+													name: split[2].substring(split[2].indexOf("-") + 1 || 0).trim()
+												};
 												mobs = mobs.concat(toConcat);
 											}
 										}
@@ -229,15 +230,16 @@ module.exports = function(callback) {
 							if (item.mob.name) {
 								index = 2;
 							}
-							for (var i = index; i < index + 5; i++) {
+							for (i = index; i < index + 5; i++) {
+								var toPush;
 								if (stats[i].children[0].children) {
-									var toPush = "**" + stats[i].children[0].children[0].raw.trim();
+									toPush = "**" + stats[i].children[0].children[0].raw.trim();
 									if (stats[i].children[1]) {
 										toPush += stats[i].children[1].raw.trim();
 									}
 									toPush += "**";
 								}
-								else var toPush = stats[i].children[0].raw.trim();
+								else toPush = stats[i].children[0].raw.trim();
 								item.mob.stats.push(toPush);
 							}
 

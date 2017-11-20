@@ -22,7 +22,7 @@ var app = express();
 var port = 3000;
 app.listen(port, function() {
 	logger.info("Express server listening on port " + port);
-})
+});
 app.get("/ping", function(req, res) {
 	res.send("pong");
 });
@@ -61,7 +61,7 @@ String.prototype.reformat = function() {
 	str = str.replace(/(ç)/g, "c");
 	str = str.replace(/\s+/g, " ");
 	return str;
-}
+};
 
 String.prototype.capitalize = function() {
 	var index = 0;
@@ -71,7 +71,7 @@ String.prototype.capitalize = function() {
 		array[index] = array[index][0].toUpperCase() + array[index].substring(1);
 	});
 	return str.join(" ");
-}
+};
 
 function discordClientSendMessage(options, callback) {
 	if (!options.to) return callback("No channelID set.");

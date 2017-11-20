@@ -151,26 +151,29 @@ module.exports = function(callback) {
 					else if (res.length === 0) {
 						discordClient.sendMessage({
 							to: channelID,
-							message: "```\nAucun monstre trouvé pour la recherche \"" + args.join(" ") + "\"\n```"
+							message: "nAucun monstre trouvé pour la recherche \"" + args.join(" ") + "\""
 						}, function(err) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
 							});
 						});
+					} else if (res.length === 1) {
+						var item = res[0];
+						discordClient.sendMessage({
+							to: channelID,
+							embed: buildMobEmbedMessage(item)
+						}, function (err) {
+							if (err) return callback(err);
+							return callback(null, {
+								type: "GOOD"
+							});
+						});
 					} else {
-						res.length = Math.min(res.length, 5);
+						var message = "• Plusieurs monstres trouvés pour la recherche \"" + args.join(" ") + "\", affinez votre recherche";
 						async.times(res.length, function(n, callback) {
 							var item = res[n];
-							discordClient.sendMessage({
-								to: channelID,
-								embed: buildMobEmbedMessage(item)
-							}, function(err) {
-								if (err) return callback(err);
-								return callback(null, {
-									type: "GOOD"
-								});
-							});
+							message += "\n• [" + item.title + "](localhost:3000/mob/" + item.mob.family + "/" + item.mob.element + "/" + channelID + ")";
 						});
 					}
 				});

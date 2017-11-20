@@ -23,17 +23,18 @@ var port = 3000;
 app.listen(port, function() {
 	logger.info("Express server listening on port " + port);
 });
-app.get("/ping/:family/:element/:channelID", function(req, res) {
+app.get("/mob/:family/:element/:channelID", function(req, res) {
 	async.waterfall([
 		function(callback) {
 			redisClient.get("mob:" + req.params.family + ":" + req.params.element, callback);
 		}
 	], function (err, item) {
+		if (item) return res.status(500);
 		discordClient.sendMessage({
 			to: req.params.channelID,
 			embed: libs.commands.buildMobEmbedMessage(JSON.parse(item))
 		}, function (err) {
-			res.send("pong");
+			res.status(err ? 500 : 200);
 		});
 	});
 });

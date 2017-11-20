@@ -170,10 +170,19 @@ module.exports = function(callback) {
 							});
 						});
 					} else {
-						var message = "• Plusieurs monstres trouvés pour la recherche \"" + args.join(" ") + "\", affinez votre recherche";
+						var message = "Plusieurs monstres trouvés pour la recherche \"" + args.join(" ") + "\", affinez votre recherche";
 						async.times(res.length, function(n, callback) {
 							var item = res[n];
-							message += "\n• [" + item.title + "](localhost:3000/mob/" + item.mob.family + "/" + item.mob.element + "/" + channelID + ")";
+							message += "\n• [" + item.title + "](http://172.31.32.4:3000/mob/" + item.mob.family + "/" + item.mob.element + "/" + channelID + ")";
+						});
+						discordClient.sendMessage({
+							to: channelID,
+							message: message
+						}, function (err) {
+							if (err) return callback(err);
+							return callback(null, {
+								type: "GOOD"
+							});
 						});
 					}
 				});

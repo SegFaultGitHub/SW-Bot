@@ -29,7 +29,7 @@ app.get("/mob/:family/:element/:channelID", function(req, res) {
 			redisClient.get("mob:" + req.params.family + ":" + req.params.element, callback);
 		}
 	], function (err, item) {
-		if (item) return res.status(500);
+		if (err) return res.status(500);
 		discordClient.sendMessage({
 			to: req.params.channelID,
 			embed: libs.commands.buildMobEmbedMessage(JSON.parse(item))
@@ -183,5 +183,3 @@ process.on("uncaughtException", function(err) {
 		message: "<@" + botConfig.adminUserID + ">```\n" + err.stack + "\n```"
 	});
 });
-
-// libs.swapi.mob("ritesh", false, function() { });

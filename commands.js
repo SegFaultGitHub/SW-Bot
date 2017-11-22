@@ -7,8 +7,7 @@ module.exports = function(callback) {
 
 	function footer() {
 		return {
-			icon_url: "https://camo.githubusercontent.com/7710b43d0476b6f6d4b4b2865e35c108f69991f3/68747470733a2f2f7777772e69636f6e66696e6465722e636f6d2f646174612f69636f6e732f6f637469636f6e732f313032342f6d61726b2d6769746875622d3235362e706e67",
-			text: "[GitHub](https://github.com/SegFaultGitHub/SW-Bot)"
+			text: "Bot créé par SegFault#5814"
 		};
 	}
 
@@ -79,6 +78,8 @@ module.exports = function(callback) {
 			"• **Précision :** " + item.mob.stats[7]
 		});
 
+		embed.footer = footer();
+
 		return embed;
 	}
 
@@ -116,7 +117,10 @@ module.exports = function(callback) {
 					});
 				});
 			},
-			help: "!redis KEY [KEY ...]{ret}Affiche les valeurs redis demandées",
+			help: {
+				usage: "!redis KEY [KEY ...]",
+				message: "Affiche les valeurs redis demandées",
+			},
 			devOnly: true
 		},
 		del: {
@@ -132,7 +136,10 @@ module.exports = function(callback) {
 					});
 				});
 			},
-			help: "!del KEY{ret}Supprime la valeur redis spécifiée",
+			help: {
+				usage: "!del KEY",
+				message: "Supprime la valeur redis spécifiée"
+			},
 			devOnly: true
 		},
 		mob: {
@@ -146,12 +153,19 @@ module.exports = function(callback) {
 					args = args.splice(1);
 					force = true;
 				}
-				libs.swapi.mob(args.join(" "), force, function(err, res) {
+				var name = args.join(" ");
+				if (name.length < 1)
+					return callback(null, {
+						type: "MISUSED"
+					});
+				libs.swapi.mob(name, force, function(err, res) {
 					if (err) return callback(err);
 					else if (res.length === 0) {
 						discordClient.sendMessage({
 							to: channelID,
-							message: "nAucun monstre trouvé pour la recherche \"" + args.join(" ") + "\""
+							embed: {
+								description: "Aucun monstre trouvé pour la recherche \"" + name + "\""
+							}
 						}, function(err) {
 							if (err) return callback(err);
 							return callback(null, {
@@ -169,16 +183,36 @@ module.exports = function(callback) {
 								type: "GOOD"
 							});
 						});
-					} else {
-						var message = "Plusieurs monstres trouvés pour la recherche \"" + args.join(" ") + "\", affinez votre recherche";
+					} else if (res.length <= 10) {
+						var embed = {
+							description: "Plusieurs monstres trouvés pour la recherche \"" + name + "\", affinez votre recherche",
+							fields: []
+						};
 						async.times(res.length, function(n, callback) {
 							var item = res[n];
-							message += "\n• [" + item.title + "](http://172.31.32.4:3000/mob/" + item.mob.family + "/" + item.mob.element + "/" + channelID + ")";
+							var field = {
+								name: "Résultat #" + (n + 1),
+								value: "~~[" + item.title + "](http://localhost:3000/mob/" + item.mob.family.redis() + "/" + item.mob.element.redis() + "/" + channelID + ")~~ (lien non fonctionnel)"
+							};
+							embed.fields.push(field);
 						});
+						embed.footer = footer();
 						discordClient.sendMessage({
 							to: channelID,
-							message: message
+							embed: embed
 						}, function (err) {
+							if (err) return callback(err);
+							return callback(null, {
+								type: "GOOD"
+							});
+						});
+					} else {
+						discordClient.sendMessage({
+							to: channelID,
+							embed: {
+								description: "Trop de résultats pour la recherche \"" + name + "\", affinez votre recherche"
+							}
+						}, function(err) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
@@ -187,7 +221,10 @@ module.exports = function(callback) {
 					}
 				});
 			},
-			help: "!mob [--name] MOB_NAME{ret}Affiche les informations sur le monstre demandé"
+			help: {
+				usage: "!mob [--name] MOB_NAME",
+				message: "Affiche les informations sur le monstre demandé"
+			}
 		},
 		help: {
 			func: function(user, userID, channelID, message, evt, args, callback) {
@@ -196,13 +233,19 @@ module.exports = function(callback) {
 				else
 					sendHelpMessage(user, userID, channelID, message, evt, args, callback);
 			},
-			help: "!help [COMMAND ...]{ret}Affiche les informations sur les commandes demandées"
+			help: {
+				usage: "!help [COMMAND ...]",
+				message: "Affiche les informations sur les commandes demandées"
+			}
 		},
 		crash: {
 			func: function(user, userID, channelID, message, evt, args, callback) {
 				throw new Error();
 			},
-			help: "!crash{ret}Fait crasher le bot",
+			help: {
+				usage: "!crash",
+				message: "Fait crasher le bot"
+			},
 			devOnly: true
 		}
 	};
@@ -211,31 +254,45 @@ module.exports = function(callback) {
 		async.waterfall([
 			function(callback) {
 				return callback(null, cmds.filter(function(cmd) {
-					return cmds.indexOf(cmd) !== -1;
+					return Object.keys(commands).indexOf(cmd) !== -1;
 				}).filter(function(elem, index, self) {
 				    return index == self.indexOf(elem);
 				}));
 			},
 			function(cmds, callback) {
-				var max = 0;
-				cmds.forEach(function(cmd) {
-					if (max < cmd.length) max = cmd.length;
-				});
-				return callback(null, max, cmds);
-			},
-			function(size, cmds, callback) {
-				var result = "```";
+				if (cmds.length === 0) {
+					return discordClient.sendMessage({
+							to: channelID,
+							message: "La commande demandée n'existe pas"
+					}, function(err) {
+						if (err) return callback(err);
+						return callback(null, {
+							type: "GOOD"
+						})
+					});
+				}
+				var embed = {
+					title: "Aide",
+					fields: []
+				}
 				cmds.forEach(function(cmd) {
 					if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return;
-					result += "\n*" + cmd + "*" + " ".repeat(size - cmd.length + 2) +
-						commands[cmd].help.replace("{ret}", "\n" + " ".repeat(size + 4)) +
-						"\n";
+					var field = {
+						name: cmd,
+						value: "`" + commands[cmd].help.usage + "`\n" + commands[cmd].help.message
+					};
+					embed.fields.push(field);
 				});
-				result += "\n```";
+				embed.footer = footer();
 				discordClient.sendMessage({
 					to: channelID,
-					message: result
-				}, callback);
+					embed: embed
+				}, function(err) {
+					if (err) return callback(err);
+					return callback(null, {
+						type: "GOOD"
+					})
+				});
 			}
 		], callback);
 	}
@@ -252,7 +309,7 @@ module.exports = function(callback) {
 				},
 				function(retval, callback) {
 					if (retval.type === "MISUSED") {
-						sendHelpMessage(user, userID, channelID, message, evt, channelID, [cmd], callback);
+						sendHelpMessage(user, userID, channelID, message, evt, [cmd], callback);
 					} else {
 						return callback();
 					}

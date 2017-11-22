@@ -157,7 +157,7 @@ module.exports = function(callback) {
 							isOutdated(baseURL + item.href, callback);
 						},
 						function (outdated, callback) {
-							redisClient.get("mob:" + item.mob.family + ":" + item.mob.element, function (err, mob) {
+							redisClient.get("mob:" + item.mob.family.redis() + ":" + item.mob.element.redis(), function (err, mob) {
 								if (err) return callback(err);
 								else if (mob) return callback(null, JSON.parse(mob), outdated);
 								else return callback(null, null, outdated);
@@ -165,11 +165,11 @@ module.exports = function(callback) {
 						},
 						function(mob, outdated, callback) {
 							if (!outdated && mob) {
-								logger.info("Using cached data for the mob: " + item.mob.name);
+								logger.info("Using cached data for the mob: " + item.mob.family + " " + item.mob.element);
 								return callback(null, mob);
 							}
 							else {
-								logger.info("Retrieving data for the mob: " + item.mob.name);
+								logger.info("Retrieving data for the mob: " + item.mob.family + " " + item.mob.element);
 								async.waterfall([
 									function(callback) {
 										jsonizeURL(baseURL + item.href, callback);
@@ -265,7 +265,7 @@ module.exports = function(callback) {
 									},
 									// Save mob to redis for later uses
 									function(callback) {
-										redisClient.set("mob:" + item.mob.family + ":" + item.mob.element, JSON.stringify(item), function(err) {
+										redisClient.set("mob:" + item.mob.family.redis() + ":" + item.mob.element.redis(), JSON.stringify(item), function(err) {
 											if (err) return callback(err);
 											return callback(null, item);
 										});

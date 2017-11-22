@@ -75,6 +75,12 @@ String.prototype.reformat = function() {
 	return str;
 };
 
+String.prototype.redis = function() {
+	var str = this.reformat();
+	str = str.replace(/(\s|')/g, "-");
+	return str;
+}
+
 String.prototype.capitalize = function() {
 	var index = 0;
 	var str = this.replace(/\s+/g, " ");
@@ -167,12 +173,6 @@ function messageListener(user, userID, channelID, message, evt) {
 
 discordClient.on("ready", function(evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
-	discordClient.sendMessage({
-		to: botConfig.adminChannelID,
-		message: "[Clique](http://localhost:3000/ping/phoenix/wind/" + botConfig.adminChannelID + ")"
-	}, function (err) {
-
-	});
 });
 
 discordClient.on("message", messageListener);

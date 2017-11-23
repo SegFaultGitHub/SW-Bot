@@ -108,15 +108,17 @@ module.exports = function (callback) {
 				});
 				var redis_ = {};
 				var func;
-				if (args[0] !== "--get" && args[0] !== "--hget")
+				if (args[0] !== "--get" && args[0] !== "--hget" && args[0] !== "--del") {
 					return callback(null, {
 						type: "MISUSED"
 					});
+				}
 				async.eachSeries(args.splice(1), function (redisKey, callback) {
 					async.waterfall([
 						function (callback) {
 							if (args[0] === "--get") return redisClient.get(redisKey, callback);
 							else if (args[0] === "--hget") return redisClient.hgetall(redisKey, callback);
+							else if (args[0] === "--del") return redisClient.del(redisKey, callback);
 						},
 						function (redis, callback) {
 							redis_[redisKey] = redis || null;
@@ -137,7 +139,7 @@ module.exports = function (callback) {
 				});
 			},
 			help: {
-				usage: "!redis (--get | --hget) KEY [KEY ...]",
+				usage: "!redis (--get | --hget | --del) KEY [KEY ...]",
 				message: "Affiche les valeurs redis demandées",
 			},
 			devOnly: true
@@ -176,10 +178,11 @@ module.exports = function (callback) {
 					force = true;
 				}
 				var name = args.join(" ");
-				if (name.length < 3)
+				if (name.length < 3) {
 					return callback(null, {
 						type: "MISUSED"
 					});
+				}
 				libs.swapi.mob(name, force, function (err, res) {
 					if (err) return callback(err);
 					else if (res.length === 0) {

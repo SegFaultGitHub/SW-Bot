@@ -1,6 +1,19 @@
 var async = require("async");
 
 module.exports = function(callback) {
+	var emojiNumbers = [
+		"1⃣",
+		"2⃣",
+		"3⃣",
+		"4⃣",
+		"5⃣",
+		"6⃣",
+		"7⃣",
+		"8⃣",
+		"9⃣",
+		"🔟"
+	];
+
 	function colorToHexa(color) {
 		return color[0] * 0x10000 + color[1] * 0x100 + color[2];
 	}
@@ -154,7 +167,7 @@ module.exports = function(callback) {
 					force = true;
 				}
 				var name = args.join(" ");
-				if (name.length < 1)
+				if (name.length <= 3)
 					return callback(null, {
 						type: "MISUSED"
 					});
@@ -197,10 +210,33 @@ module.exports = function(callback) {
 							embed.fields.push(field);
 						});
 						embed.footer = footer();
-						discordClient.sendMessage({
-							to: channelID,
-							embed: embed
-						}, function (err) {
+						async.waterfall([
+							function(callback) {
+								discordClient.sendMessage({
+									to: channelID,
+									embed: embed
+								}, callback);
+							},
+							function(m, callback) {
+								async.eachSeries(emojiNumbers.slice(0, res.length), function(reac, callback) {
+									discordClient.addReaction({
+										channelID: channelID,
+										messageID: m.id,
+										reaction: reac
+									}, function (err, res) {
+										if (err) return callback(err);
+										logger.info(JSON.stringify(res, null, 2));
+										setTimeout(callback, 250);
+									});
+								}, function(err) {
+									if (err) return callback(err);
+									else return callback();
+								});
+							},
+							function(callback) {
+								redisClient.hset("follow:mobsList:")
+							}
+						], function(err) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
@@ -223,7 +259,7 @@ module.exports = function(callback) {
 			},
 			help: {
 				usage: "!mob [--name] MOB_NAME",
-				message: "Affiche les informations sur le monstre demandé"
+				message: "Affiche les informations sur le monstre demandé (trois caractères minimum)."
 			}
 		},
 		help: {
@@ -231,7 +267,7 @@ module.exports = function(callback) {
 				if (args.length === 0)
 					sendHelpMessage(user, userID, channelID, message, evt, Object.keys(commands), callback);
 				else
-					sendHelpMessage(user, userID, channelID, message, evt, args, callback);
+					sendHelpMessage(user, userID, channelID, message, evt, args.map(function(arg) { return arg.toLowerCase(); }), callback);
 			},
 			help: {
 				usage: "!help [COMMAND ...]",
@@ -268,7 +304,7 @@ module.exports = function(callback) {
 						if (err) return callback(err);
 						return callback(null, {
 							type: "GOOD"
-						})
+						});
 					});
 				}
 				var embed = {
@@ -299,7 +335,7 @@ module.exports = function(callback) {
 
 	function executeCommand(user, userID, channelID, message, evt, callback) {
 		var args = message.split(" ");
-		var cmd = args[0].substring(botConfig.prefix.length, args[0].length);
+		var cmd = args[0].toLowerCase().substring(botConfig.prefix.length, args[0].length);
 		if (Object.keys(commands).indexOf(cmd) !== -1) {
 			if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return callback();
 			args = args.splice(1);

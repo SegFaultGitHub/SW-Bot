@@ -52,6 +52,8 @@ GLOBAL.discordClient = new Discord.Client({
 	autorun: true
 });
 GLOBAL.botConfig = config.botConfig;
+
+// Initialize redis client
 GLOBAL.redisClient = redis.createClient({
 	host: config.redis.host,
 	port: config.redis.port
@@ -112,6 +114,8 @@ function now(plus) {
 function messageListener(user, userID, channelID, message, evt) {
 	if (userID === discordClient.id) return;
 
+	logger.info(JSON.stringify(evt, null, 2));
+	
 	loweredMessage = message.toLowerCase();
 	trimedMessage = message.trim();
 	trimedMessage = message.replace(/\s+/, " ");
@@ -173,6 +177,21 @@ function messageListener(user, userID, channelID, message, evt) {
 
 discordClient.on("ready", function(evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
+
+	setTimeout(function followMessages() {
+		async.parallel({
+			mobsList: function(callback) {
+				async.waterfall([
+					function(callback) {
+						redisClient.get("follow:mobsList:")
+					}
+				], callback);
+			}
+		}, function (err) {
+			if (err) logger.error(err);
+			setTimeout(followMessages, 500);
+		})
+	}, 0);
 });
 
 discordClient.on("message", messageListener);

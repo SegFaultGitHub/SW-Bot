@@ -1,6 +1,6 @@
 var async = require("async");
 
-module.exports = function(callback) {
+module.exports = function (callback) {
 	var emojiNumbers = [
 		"1⃣",
 		"2⃣",
@@ -82,13 +82,13 @@ module.exports = function(callback) {
 		}, {
 			name: "*Statistiques*",
 			value: "• **Points de vie :** " + item.mob.stats[0] + "\n" +
-			"• **Attaque :** " + item.mob.stats[1] + "\n" +
-			"• **Défense :** " + item.mob.stats[2] + "\n" +
-			"• **Vitesse :** " + item.mob.stats[3] + "\n\n" +
-			"• **Taux critique :** " + item.mob.stats[4] + "\n" +
-			"• **Dégâts critiques :** " + item.mob.stats[5] + "\n" +
-			"• **Résistance :** " + item.mob.stats[6] + "\n" +
-			"• **Précision :** " + item.mob.stats[7]
+				"• **Attaque :** " + item.mob.stats[1] + "\n" +
+				"• **Défense :** " + item.mob.stats[2] + "\n" +
+				"• **Vitesse :** " + item.mob.stats[3] + "\n\n" +
+				"• **Taux critique :** " + item.mob.stats[4] + "\n" +
+				"• **Dégâts critiques :** " + item.mob.stats[5] + "\n" +
+				"• **Résistance :** " + item.mob.stats[6] + "\n" +
+				"• **Précision :** " + item.mob.stats[7]
 		});
 
 		embed.footer = footer();
@@ -98,56 +98,64 @@ module.exports = function(callback) {
 
 	var commands = {
 		redis: {
-			func: function(user, userID, channelID, message, evt, args, callback) {
-				if (args.length === 0)
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length <= 1)
 					return callback(null, {
 						type: "MISUSED"
 					});
-				args = args.filter(function(elem, index, self) {
-				    return index == self.indexOf(elem);
+				args = args.filter(function (elem, index, self) {
+					return index == self.indexOf(elem);
 				});
 				var redis_ = {};
-				async.eachSeries(args, function(redisKey, callback) {
+				var func;
+				if (args[0] !== "--get" && args[0] !== "--hget")
+					return callback(null, {
+						type: "MISUSED"
+					});
+				async.eachSeries(args.splice(1), function (redisKey, callback) {
 					async.waterfall([
-						function(callback) {
-							return redisClient.hgetall(redisKey, callback);
+						function (callback) {
+							if (args[0] === "--get") return redisClient.get(redisKey, callback);
+							else if (args[0] === "--hget") return redisClient.hgetall(redisKey, callback);
 						},
-						function(redis, callback) {
+						function (redis, callback) {
 							redis_[redisKey] = redis || null;
 							return callback();
 						}
 					], callback);
-				}, function(err) {
+				}, function (err) {
 					if (err) return callback(err);
 					discordClient.sendMessage({
 						to: channelID,
 						message: "```\n" + JSON.stringify(redis_, null, 2) + "\n```"
-					}, function(err) {
+					}, function (err) {
 						if (err) return callback(err);
 						return callback(null, {
-							type:"GOOD"
+							type: "GOOD"
 						});
 					});
 				});
 			},
 			help: {
-				usage: "!redis KEY [KEY ...]",
+				usage: "!redis (--get | --hget) KEY [KEY ...]",
 				message: "Affiche les valeurs redis demandées",
 			},
 			devOnly: true
 		},
 		del: {
-			func: function(user, userID, channelID, message, evt, args, callback) {
-				if (args.length !== 1)
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length !== 1) {
 					return callback(null, {
 						type: "MISUSED"
 					});
-				else redisClient.del(args[0], function(err) {
-					if (err) return callback(err);
-					return callback(null, {
-						type: "GOOD"
+				} else {
+					redisClient.del(args[0], function (err) {
+						if (err) return callback(err);
+						return callback(null, {
+							type: "GOOD"
+						});
 					});
-				});
+				}
 			},
 			help: {
 				usage: "!del KEY",
@@ -156,22 +164,23 @@ module.exports = function(callback) {
 			devOnly: true
 		},
 		mob: {
-			func: function(user, userID, channelID, message, evt, args, callback) {
-				if (args.length === 0)
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length === 0) {
 					return callback(null, {
 						type: "MISUSED"
 					});
+				}
 				var force = false;
 				if (args[0] === "--name") {
 					args = args.splice(1);
 					force = true;
 				}
 				var name = args.join(" ");
-				if (name.length <= 3)
+				if (name.length < 3)
 					return callback(null, {
 						type: "MISUSED"
 					});
-				libs.swapi.mob(name, force, function(err, res) {
+				libs.swapi.mob(name, force, function (err, res) {
 					if (err) return callback(err);
 					else if (res.length === 0) {
 						discordClient.sendMessage({
@@ -179,7 +188,7 @@ module.exports = function(callback) {
 							embed: {
 								description: "Aucun monstre trouvé pour la recherche \"" + name + "\""
 							}
-						}, function(err) {
+						}, function (err) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
@@ -197,46 +206,81 @@ module.exports = function(callback) {
 							});
 						});
 					} else if (res.length <= 10) {
+						res = res.sort(function (a, b) {
+							return a.mob.element > b.mob.element;
+						}).sort(function (a, b) {
+							return a.mob.family > b.mob.family;
+						}).sort(function (a, b) {
+							return a.mob.stars > b.mob.stars;
+						});
 						var embed = {
 							description: "Plusieurs monstres trouvés pour la recherche \"" + name + "\", sélectionnez une réaction pour choisir le monstre à afficher",
 							fields: []
 						};
-						async.times(res.length, function(n, callback) {
+						async.times(res.length, function (n, callback) {
 							var item = res[n];
 							var field = {
-								name: "Résultat #" + (n + 1),
-								value: "~~[" + item.title + "](http://localhost:3000/mob/" + item.mob.family.redis() + "/" + item.mob.element.redis() + "/" + channelID + ")~~ (lien non fonctionnel)"
+								name: "Résultat #" + emojiNumbers[n],
+								value: item.title
 							};
 							embed.fields.push(field);
 						});
 						embed.footer = footer();
 						async.waterfall([
-							function(callback) {
+							function (callback) {
 								discordClient.sendMessage({
 									to: channelID,
 									embed: embed
 								}, callback);
 							},
-							function(m, callback) {
-								async.eachSeries(emojiNumbers.slice(0, res.length), function(reac, callback) {
-									discordClient.addReaction({
-										channelID: channelID,
-										messageID: m.id,
-										reaction: reac
-									}, function (err, res) {
-										if (err) return callback(err);
-										logger.info(JSON.stringify(res, null, 2));
-										setTimeout(callback, 250);
-									});
-								}, function(err) {
+							function (message, callback) {
+								redisClient.set("follow:mobList:" + channelID, message.id, function (err) {
 									if (err) return callback(err);
-									else return callback();
+									return callback(null, message);
 								});
 							},
-							function(callback) {
-								redisClient.hset("follow:mobsList:")
+							function (message, callback) {
+								redisClient.expire("follow:mobList:" + channelID, 300, function (err) {
+									if (err) return callback(err);
+									return callback(null, message);
+								});
+							},
+							function (message, callback) {
+								redisClient.del("follow:mobList:" + channelID + ":" + message.id, function (err) {
+									if (err) return callback(err);
+									return callback(null, message);
+								});
+							},
+							function (message, callback) {
+								redisClient.hset("follow:mobList:" + channelID + ":" + message.id, "count", res.length, function(err) {
+									if (err) return callback(err);
+									return callback(null, message);
+								});
+							},
+							function (message, callback) {
+								async.timesSeries(res.length, function (n, callback) {
+									var item = res[n];
+									discordClient.addReaction({
+										channelID: channelID,
+										messageID: message.id,
+										reaction: emojiNumbers[n]
+									}, function (err, res) {
+										if (err) return callback(err);
+										async.waterfall([
+											function (callback) {
+												redisClient.hset("follow:mobList:" + channelID + ":" + message.id, "mob" + n, item.mob.family.redis() + ":" + item.mob.element.redis(), callback);
+											}
+										], function (err) {
+											if (err) return callback(err);
+											return setTimeout(callback, 250);
+										});
+									});
+								}, function (err) {
+									if (err) return callback(err);
+									redisClient.expire("follow:mobList:" + channelID + ":" + message.id, 300, callback);
+								});
 							}
-						], function(err) {
+						], function (err) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
@@ -248,7 +292,7 @@ module.exports = function(callback) {
 							embed: {
 								description: "Trop de résultats pour la recherche \"" + name + "\", affinez votre recherche"
 							}
-						}, function(err) {
+						}, function (err) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
@@ -263,11 +307,11 @@ module.exports = function(callback) {
 			}
 		},
 		help: {
-			func: function(user, userID, channelID, message, evt, args, callback) {
-				if (args.length === 0)
-					sendHelpMessage(user, userID, channelID, message, evt, Object.keys(commands), callback);
-				else
-					sendHelpMessage(user, userID, channelID, message, evt, args.map(function(arg) { return arg.toLowerCase(); }), callback);
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length === 0) sendHelpMessage(user, userID, channelID, message, evt, Object.keys(commands), callback);
+				else sendHelpMessage(user, userID, channelID, message, evt, args.map(function (arg) {
+					return arg.toLowerCase();
+				}), callback);
 			},
 			help: {
 				usage: "!help [COMMAND ...]",
@@ -275,7 +319,7 @@ module.exports = function(callback) {
 			}
 		},
 		crash: {
-			func: function(user, userID, channelID, message, evt, args, callback) {
+			func: function (user, userID, channelID, message, evt, args, callback) {
 				throw new Error();
 			},
 			help: {
@@ -288,19 +332,19 @@ module.exports = function(callback) {
 
 	function sendHelpMessage(user, userID, channelID, message, evt, cmds, callback) {
 		async.waterfall([
-			function(callback) {
-				return callback(null, cmds.filter(function(cmd) {
+			function (callback) {
+				return callback(null, cmds.filter(function (cmd) {
 					return Object.keys(commands).indexOf(cmd) !== -1;
-				}).filter(function(elem, index, self) {
-				    return index == self.indexOf(elem);
+				}).filter(function (elem, index, self) {
+					return index == self.indexOf(elem);
 				}));
 			},
-			function(cmds, callback) {
+			function (cmds, callback) {
 				if (cmds.length === 0) {
 					return discordClient.sendMessage({
-							to: channelID,
-							message: "La commande demandée n'existe pas"
-					}, function(err) {
+						to: channelID,
+						message: "La commande demandée n'existe pas"
+					}, function (err) {
 						if (err) return callback(err);
 						return callback(null, {
 							type: "GOOD"
@@ -311,7 +355,7 @@ module.exports = function(callback) {
 					title: "Aide",
 					fields: []
 				}
-				cmds.forEach(function(cmd) {
+				cmds.forEach(function (cmd) {
 					if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return;
 					var field = {
 						name: cmd,
@@ -323,7 +367,7 @@ module.exports = function(callback) {
 				discordClient.sendMessage({
 					to: channelID,
 					embed: embed
-				}, function(err) {
+				}, function (err) {
 					if (err) return callback(err);
 					return callback(null, {
 						type: "GOOD"
@@ -340,10 +384,10 @@ module.exports = function(callback) {
 			if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return callback();
 			args = args.splice(1);
 			async.waterfall([
-				function(callback) {
+				function (callback) {
 					commands[cmd].func(user, userID, channelID, message, evt, args, callback);
 				},
-				function(retval, callback) {
+				function (retval, callback) {
 					if (retval.type === "MISUSED") {
 						sendHelpMessage(user, userID, channelID, message, evt, [cmd], callback);
 					} else {
@@ -358,6 +402,7 @@ module.exports = function(callback) {
 
 	return callback(null, {
 		executeCommand: executeCommand,
-		buildMobEmbedMessage: buildMobEmbedMessage
+		buildMobEmbedMessage: buildMobEmbedMessage,
+		emojiNumbers: emojiNumbers
 	});
 };

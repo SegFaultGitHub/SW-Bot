@@ -153,7 +153,18 @@ function messageListener(user, userID, channelID, message, evt) {
 					});
 				},
 				function(callback) {
-					redisClient.hset(redisKey, "lastMessage", now(), callback);
+					redisClient.hset(redisKey, "lastMessage", now(), function (err) {
+						if (err) return callback(err);
+						return callback();
+					});
+				},
+				function(callback) {
+					redisClient.get("channels", callback);
+				},
+				function(channels, callback) {
+					channels = channels ? channels.split(",") : [];
+					if (channels.indexOf(channelID) === -1) channels.push(channelID);
+					redisClient.set("channels", channels.join(","), callback);
 				}
 			], function(err) {
 				if (err) return callback(err);

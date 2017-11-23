@@ -198,7 +198,7 @@ module.exports = function(callback) {
 						});
 					} else if (res.length <= 10) {
 						var embed = {
-							description: "Plusieurs monstres trouvés pour la recherche \"" + name + "\", affinez votre recherche",
+							description: "Plusieurs monstres trouvés pour la recherche \"" + name + "\", sélectionnez une réaction pour choisir le monstre à afficher",
 							fields: []
 						};
 						async.times(res.length, function(n, callback) {
@@ -327,7 +327,7 @@ module.exports = function(callback) {
 					if (err) return callback(err);
 					return callback(null, {
 						type: "GOOD"
-					})
+					});
 				});
 			}
 		], callback);

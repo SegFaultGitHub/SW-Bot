@@ -107,9 +107,9 @@ function discordClientSendMessage(options, callback) {
 	});
 }
 
-function now(plus) {
+GLOBAL.now = function(plus) {
 	return new Date().getTime() + (plus || 0) * 1e3;
-}
+};
 
 function messageListener(user, userID, channelID, message, evt) {
 	if (userID === discordClient.id) return;
@@ -186,6 +186,7 @@ function messageListener(user, userID, channelID, message, evt) {
 
 discordClient.on("ready", function (evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
+	GLOBAL.connectionDate = now();
 
 	// Reaction
 	setTimeout(function followMessages() {

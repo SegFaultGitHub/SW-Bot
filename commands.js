@@ -24,6 +24,23 @@ module.exports = function (callback) {
 		};
 	}
 
+	function epochToTimestamp(epoch) {
+		epoch = epoch / 1000;
+		var uptime = {
+			days: Math.floor(epoch / (60 * 60 * 24)),
+			hours: Math.floor(epoch % (60 * 60 * 24) / (60 * 60)),
+			minutes: Math.floor(epoch % (60 * 60) / 60),
+			seconds: Math.floor(epoch % 60)
+		};
+
+		var result = "";
+		if (uptime.days) result += uptime.days + " jour" + (uptime.days > 1 ? "s" : "");
+		if (uptime.hours) result += uptime.hours + " heure" + (uptime.hours > 1 ? "s" : "");
+		if (uptime.minutes) result += uptime.minutes + " minute" + (uptime.minutes > 1 ? "s" : "");
+		if (uptime.seconds) result += uptime.seconds + " seconde" + (uptime.seconds > 1 ? "s" : "");
+		return result || "0 seconde";
+	}
+
 	function buildMobEmbedMessage(item) {
 		var embed = {
 			title: item.title,
@@ -330,6 +347,32 @@ module.exports = function (callback) {
 				message: "Fait crasher le bot"
 			},
 			devOnly: true
+		},
+		uptime: {
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length !== 0) {
+					return callback(null, {
+						type: "MISUSED"
+					});
+				}
+				discordClient.sendMessage({
+					to: channelID,
+					embed: {
+						title: "Uptime",
+						description: "En ligne depuis " + epochToTimestamp(now() - connectionDate)
+					}
+				}, function (err) {
+					if (err) return callback(err);
+					return callback(null, {
+						type: "GOOD"
+					});
+				});
+			},
+			help: {
+				usage: "!uptime",
+				message: "Affiche l'uptime du bot"
+			},
+			devOnly: true
 		}
 	};
 
@@ -361,7 +404,7 @@ module.exports = function (callback) {
 				cmds.forEach(function (cmd) {
 					if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return;
 					var field = {
-						name: cmd,
+						name: cmd + (commands[cmd].devOnly ? " (dev only)" : ""),
 						value: "`" + commands[cmd].help.usage + "`\n" + commands[cmd].help.message
 					};
 					embed.fields.push(field);

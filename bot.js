@@ -189,6 +189,10 @@ discordClient.on("ready", function (evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
 	GLOBAL.connectionDate = now();
 
+	setInterval(function () {
+		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!uptime", null, function (err) { });
+	}, 60e3);
+
 	// Reaction
 	setTimeout(function followMessages() {
 		async.waterfall([
@@ -262,6 +266,11 @@ discordClient.on("ready", function (evt) {
 });
 
 discordClient.on("message", messageListener);
+
+discordClient.on("disconnect", function () {
+	logger.info("Bot disconnected, reconnecting.");
+	bot.connect();
+});
 
 process.on("uncaughtException", function (err) {
 	discordClient.sendMessage({

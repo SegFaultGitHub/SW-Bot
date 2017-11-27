@@ -14,6 +14,10 @@ module.exports = function (callback) {
 		"🔟"
 	];
 
+	function devCmd(cmd, userID) {
+		return commands[cmd].devOnly && botConfig.adminUserIDs.indexOf(userID) === -1;
+	}
+
 	function colorToHexa(color) {
 		return color[0] * 0x10000 + color[1] * 0x100 + color[2];
 	}
@@ -34,10 +38,10 @@ module.exports = function (callback) {
 		};
 
 		var result = "";
-		if (uptime.days) result += uptime.days + " jour" + (uptime.days > 1 ? "s" : "");
-		if (uptime.hours) result += uptime.hours + " heure" + (uptime.hours > 1 ? "s" : "");
-		if (uptime.minutes) result += uptime.minutes + " minute" + (uptime.minutes > 1 ? "s" : "");
-		if (uptime.seconds) result += uptime.seconds + " seconde" + (uptime.seconds > 1 ? "s" : "");
+		if (uptime.days) result += uptime.days + " jour" + (uptime.days > 1 ? "s " : " ");
+		if (uptime.hours) result += uptime.hours + " heure" + (uptime.hours > 1 ? "s " : " ");
+		if (uptime.minutes) result += uptime.minutes + " minute" + (uptime.minutes > 1 ? "s " : " ");
+		if (uptime.seconds) result += uptime.seconds + " seconde" + (uptime.seconds > 1 ? "s " : " ");
 		return result || "0 seconde";
 	}
 
@@ -402,7 +406,7 @@ module.exports = function (callback) {
 					fields: []
 				}
 				cmds.forEach(function (cmd) {
-					if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return;
+					if (devCmd(cmd, userID)) return;
 					var field = {
 						name: cmd + (commands[cmd].devOnly ? " (dev only)" : ""),
 						value: "`" + commands[cmd].help.usage + "`\n" + commands[cmd].help.message
@@ -427,7 +431,7 @@ module.exports = function (callback) {
 		var args = message.split(" ");
 		var cmd = args[0].toLowerCase().substring(botConfig.prefix.length, args[0].length);
 		if (Object.keys(commands).indexOf(cmd) !== -1) {
-			if (commands[cmd].devOnly && botConfig.adminUserID !== userID) return callback();
+			if (devCmd(cmd, userID)) return callback();
 			args = args.splice(1);
 			async.waterfall([
 				function (callback) {

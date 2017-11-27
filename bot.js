@@ -269,7 +269,7 @@ discordClient.on("message", messageListener);
 
 discordClient.on("disconnect", function () {
 	logger.info("Bot disconnected, reconnecting.");
-	bot.connect();
+	discordClient.connect();
 });
 
 process.on("uncaughtException", function (err) {

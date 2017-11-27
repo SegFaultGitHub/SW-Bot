@@ -38,10 +38,10 @@ module.exports = function (callback) {
 		};
 
 		var result = "";
-		if (uptime.days) result += uptime.days + " jour" + (uptime.days > 1 ? "s" : "");
-		if (uptime.hours) result += uptime.hours + " heure" + (uptime.hours > 1 ? "s" : "");
-		if (uptime.minutes) result += uptime.minutes + " minute" + (uptime.minutes > 1 ? "s" : "");
-		if (uptime.seconds) result += uptime.seconds + " seconde" + (uptime.seconds > 1 ? "s" : "");
+		if (uptime.days) result += uptime.days + " jour" + (uptime.days > 1 ? "s " : " ");
+		if (uptime.hours) result += uptime.hours + " heure" + (uptime.hours > 1 ? "s " : " ");
+		if (uptime.minutes) result += uptime.minutes + " minute" + (uptime.minutes > 1 ? "s " : " ");
+		if (uptime.seconds) result += uptime.seconds + " seconde" + (uptime.seconds > 1 ? "s " : " ");
 		return result || "0 seconde";
 	}
 

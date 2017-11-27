@@ -188,6 +188,10 @@ discordClient.on("ready", function (evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
 	GLOBAL.connectionDate = now();
 
+	setInterval(function () {
+		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!uptime", null, function (err) { });
+	}, 60e3);
+
 	// Reaction
 	setTimeout(function followMessages() {
 		async.waterfall([

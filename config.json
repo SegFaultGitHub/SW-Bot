@@ -2,7 +2,11 @@
 	"botConfig": {
 		"prefix": "!",
 		"adminChannelID": "381512741166514176",
-		"adminUserID": "101654140672806912"
+		"adminUserIDs": [
+			"101654140672806912",
+			"379991286377349130"
+		],
+		"uptimeChannelID": "384642394479656963"
 	},
 
 	"translation": {

@@ -262,6 +262,11 @@ discordClient.on("ready", function (evt) {
 
 discordClient.on("message", messageListener);
 
+discordClient.on("disconnect", function () {
+	logger.info("Bot disconnected, reconnecting.");
+	bot.connect();
+});
+
 process.on("uncaughtException", function (err) {
 	discordClient.sendMessage({
 		to: botConfig.adminChannelID,

@@ -42,7 +42,8 @@ app.get("/mob/:family/:element/:channelID", function (req, res) {
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(logger.transports.Console, {
-	colorize: true
+	colorize: true,
+	timestamp: true
 });
 logger.level = "debug";
 
@@ -271,7 +272,7 @@ discordClient.on("message", messageListener);
 
 discordClient.on("disconnect", function () {
 	logger.info("Bot disconnected, reconnecting.");
-	bot.connect();
+	discordClient.connect();
 });
 
 process.on("uncaughtException", function (err) {

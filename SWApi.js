@@ -145,7 +145,7 @@ module.exports = function(callback) {
 						if (item.mob.name === name) return callback(null, item);
 						else return callback();
 					} else {
-						if (item.mob.name.indexOf(name) !== -1 || item.mob.family.indexOf(name) !== -1) return callback(null, item);
+						if (item.mob.name !== "pang" && (item.mob.name.indexOf(name) !== -1 || item.mob.family.indexOf(name) !== -1)) return callback(null, item);
 						else return callback();
 					}
 				}, callback);

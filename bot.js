@@ -108,7 +108,7 @@ function discordClientSendMessage(options, callback) {
 	});
 }
 
-GLOBAL.now = function(plus) {
+GLOBAL.now = function (plus) {
 	return new Date().getTime() + (plus || 0) * 1e3;
 };
 
@@ -188,13 +188,30 @@ function messageListener(user, userID, channelID, message, evt) {
 var firstConnection = true;
 discordClient.on("ready", function (evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
+
 	if (!firstConnection) return;
 	firstConnection = false;
 	GLOBAL.connectionDate = now();
 
 	setInterval(function () {
-		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!uptime", null, function (err) { });
+		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!uptime", null, function (err) {});
 	}, 60e3);
+
+	// Siege alerts
+	setTimeout(function alert() {
+		var siegeState = libs.commands.getSiegeState();
+		logger.info(siegeState.timeToWait);
+
+		setTimeout(function() {
+			discordClient.sendMessage({
+				to: config.siege.channelID,
+				embed: config.siege.events[siegeState.index].embed
+			}, function(err) {
+				if (err) logger.error(err);
+				alert();
+			})
+		}, siegeState.timeToWait * 1000);
+	}, 0);
 
 	// Reaction
 	setTimeout(function followMessages() {
@@ -235,13 +252,13 @@ discordClient.on("ready", function (evt) {
 															discordClient.sendMessage({
 																to: channel,
 																embed: libs.commands.buildMobEmbedMessage(JSON.parse(item))
-															}, function(err) {
+															}, function (err) {
 																if (err) return callback(err);
 																async.parallel([
-																	function(callback) {
+																	function (callback) {
 																		redisClient.del("follow:mobList:" + channel, callback);
 																	},
-																	function(callback) {
+																	function (callback) {
 																		redisClient.del("follow:mobList:" + channel + ":" + messageID, callback);
 																	}
 																], callback);
@@ -250,7 +267,7 @@ discordClient.on("ready", function (evt) {
 													], callback);
 												} else return callback();
 											});
-										}, function(err) {
+										}, function (err) {
 											if (err) return callback(err);
 											setTimeout(callback, 200);
 										});
@@ -278,6 +295,6 @@ discordClient.on("disconnect", function () {
 process.on("uncaughtException", function (err) {
 	discordClient.sendMessage({
 		to: botConfig.adminChannelID,
-		message: "<@" + botConfig.adminUserID + ">```\n" + err.stack + "\n```"
+		message: "```\n" + err.stack + "\n```"
 	});
 });

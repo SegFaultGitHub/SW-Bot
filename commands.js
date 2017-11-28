@@ -14,6 +14,30 @@ module.exports = function (callback) {
 		"🔟"
 	];
 
+	function getSiegeState() {
+		var dateNow = new Date();
+		var dateNow = dateNow.getUTCDay() * 24 * 60 * 60 +
+			dateNow.getUTCHours() * 60 * 60 +
+			dateNow.getUTCMinutes() * 60 +
+			dateNow.getUTCSeconds();
+		var index = 0;
+		while (index < config.siege.events.length &&
+			dateNow >= config.siege.events[index].date.day * 24 * 60 * 60 +
+			config.siege.events[index].date.hours * 60 * 60 +
+			config.siege.events[index].date.minutes * 60) {
+			index++;
+		}
+		var nextAlert = config.siege.events[index].date.day * 24 * 60 * 60 +
+			config.siege.events[index].date.hours * 60 * 60 +
+			config.siege.events[index].date.minutes * 60;
+		var timeToWait = nextAlert - dateNow;
+
+		return {
+			index: index,
+			timeToWait: timeToWait
+		}
+	}
+
 	function devCmd(cmd, userID) {
 		return commands[cmd].devOnly && botConfig.adminUserIDs.indexOf(userID) === -1;
 	}
@@ -28,7 +52,7 @@ module.exports = function (callback) {
 		};
 	}
 
-	function epochToTimestamp(epoch) {
+	function secondsToTimestamp(epoch) {
 		epoch = epoch / 1000;
 		var uptime = {
 			days: Math.floor(epoch / (60 * 60 * 24)),
@@ -42,7 +66,7 @@ module.exports = function (callback) {
 		if (uptime.hours) result += uptime.hours + " heure" + (uptime.hours > 1 ? "s " : " ");
 		if (uptime.minutes) result += uptime.minutes + " minute" + (uptime.minutes > 1 ? "s " : " ");
 		if (uptime.seconds) result += uptime.seconds + " seconde" + (uptime.seconds > 1 ? "s " : " ");
-		return result || "0 seconde";
+		return result.substring(0, result.length - 1) || "0 seconde";
 	}
 
 	function buildMobEmbedMessage(item) {
@@ -186,6 +210,43 @@ module.exports = function (callback) {
 			},
 			devOnly: true
 		},
+		siege: {
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length !== 0) {
+					return callback(null, {
+						type: "MISUSED"
+					});
+				}
+				var siegeState = getSiegeState();
+				async.series([
+					function (callback) {
+						discordClient.sendMessage({
+							to: channelID,
+							message: "État courant :",
+							embed: config.siege.events[siegeState.index].embed
+						}, callback);
+					},
+					function (callback) {
+						discordClient.sendMessage({
+							to: channelID,
+							message: "État suivant (dans " + secondsToTimestamp(siegeState.timeToWait * 1000) + ") :",
+							embed: config.siege.events[(siegeState.index + 1) % config.siege.events.length].embed
+						}, callback);
+					}
+				], function (err) {
+					if (err) return callback(err);
+					else {
+						return callback(null, {
+							type: "GOOD"
+						});
+					}
+				});
+			},
+			help: {
+				usage: "!siege",
+				message: "Affiche les informations sur le siège."
+			}
+		},
 		mob: {
 			func: function (user, userID, channelID, message, evt, args, callback) {
 				if (args.length === 0) {
@@ -276,7 +337,7 @@ module.exports = function (callback) {
 								});
 							},
 							function (message, callback) {
-								redisClient.hset("follow:mobList:" + channelID + ":" + message.id, "count", res.length, function(err) {
+								redisClient.hset("follow:mobList:" + channelID + ":" + message.id, "count", res.length, function (err) {
 									if (err) return callback(err);
 									return callback(null, message);
 								});
@@ -363,7 +424,7 @@ module.exports = function (callback) {
 					to: channelID,
 					embed: {
 						title: "Uptime",
-						description: "En ligne depuis " + epochToTimestamp(now() - connectionDate)
+						description: "En ligne depuis " + secondsToTimestamp(now() - connectionDate)
 					}
 				}, function (err) {
 					if (err) return callback(err);
@@ -453,6 +514,7 @@ module.exports = function (callback) {
 	return callback(null, {
 		executeCommand: executeCommand,
 		buildMobEmbedMessage: buildMobEmbedMessage,
-		emojiNumbers: emojiNumbers
+		emojiNumbers: emojiNumbers,
+		getSiegeState: getSiegeState
 	});
 };

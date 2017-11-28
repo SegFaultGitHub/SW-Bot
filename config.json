@@ -9,6 +9,236 @@
 		"uptimeChannelID": "384642394479656963"
 	},
 
+	"siege": {
+		"events": [{
+			"date": {
+				"day": 1,
+				"hours": 18,
+				"minutes": 30
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Plus que 30 minutes pour s'inscrire"
+			}
+		}, {
+			"date": {
+				"day": 1,
+				"hours": 19,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Inscriptions fermées"
+			}
+		}, {
+			"date": {
+				"day": 1,
+				"hours": 19,
+				"minutes": 30
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Début de la première mi-temps dans 30 minutes"
+			}
+		}, {
+			"date": {
+				"day": 1,
+				"hours": 19,
+				"minutes": 45
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Début de la première mi-temps dans 15 minutes"
+			}
+		}, {
+			"date": {
+				"day": 1,
+				"hours": 20,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Début de la première mi-temps"
+			}
+		}, {
+			"date": {
+				"day": 2,
+				"hours": 8,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Début de l'armistice, reprise des hostilités dans 12 heures"
+			}
+		}, {
+			"date": {
+				"day": 2,
+				"hours": 19,
+				"minutes": 30
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Début de la seconde mi-temps dans 30 minutes"
+			}
+		}, {
+			"date": {
+				"day": 2,
+				"hours": 19,
+				"minutes": 45
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Début de la seconde mi-temps dans 15 minutes"
+			}
+		}, {
+			"date": {
+				"day": 2,
+				"hours": 20,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Début de la seconde mi-temps"
+			}
+		}, {
+			"date": {
+				"day": 3,
+				"hours": 7,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Fin du premier round"
+			}
+		},
+		
+		{
+			"date": {
+				"day": 3,
+				"hours": 8,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Inscriptions ouvertes"
+			}
+		}, {
+			"date": {
+				"day": 4,
+				"hours": 18,
+				"minutes": 30
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Plus que 30 minutes pour s'inscrire"
+			}
+		}, {
+			"date": {
+				"day": 4,
+				"hours": 19,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Inscriptions fermées"
+			}
+		}, {
+			"date": {
+				"day": 4,
+				"hours": 19,
+				"minutes": 30
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Début de la première mi-temps dans 30 minutes"
+			}
+		}, {
+			"date": {
+				"day": 4,
+				"hours": 19,
+				"minutes": 45
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Début de la première mi-temps dans 15 minutes"
+			}
+		}, {
+			"date": {
+				"day": 4,
+				"hours": 20,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Début de la première mi-temps"
+			}
+		}, {
+			"date": {
+				"day": 5,
+				"hours": 8,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Début de l'armistice, reprise des hostilités dans 12 heures"
+			}
+		}, {
+			"date": {
+				"day": 5,
+				"hours": 19,
+				"minutes": 30
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Début de la seconde mi-temps dans 30 minutes"
+			}
+		}, {
+			"date": {
+				"day": 5,
+				"hours": 19,
+				"minutes": 45
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Début de la seconde mi-temps dans 15 minutes"
+			}
+		}, {
+			"date": {
+				"day": 5,
+				"hours": 20,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Début de la seconde mi-temps"
+			}
+		}, {
+			"date": {
+				"day": 6,
+				"hours": 7,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Second round",
+				"description": "Fin du Second round"
+			}
+		},
+		
+		{
+			"date": {
+				"day": 6,
+				"hours": 8,
+				"minutes": 0
+			},
+			"embed": {
+				"title": "Premier round",
+				"description": "Inscriptions ouvertes"
+			}
+		}],
+
+		"channelID": "381512741166514176"
+	},
+
 	"translation": {
 		"fire": "Feu",
 		"water": "Eau",

@@ -195,7 +195,7 @@ discordClient.on("ready", function (evt) {
 
 	setInterval(function () {
 		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!uptime", null, function (err) {});
-	}, 60e3);
+	}, 5 * 60e3);
 
 	// Siege alerts
 	setTimeout(function alert() {

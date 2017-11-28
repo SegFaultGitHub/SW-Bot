@@ -205,6 +205,7 @@ discordClient.on("ready", function (evt) {
 		setTimeout(function() {
 			discordClient.sendMessage({
 				to: config.siege.channelID,
+				message: "@everyone",
 				embed: config.siege.events[siegeState.index].embed
 			}, function(err) {
 				if (err) logger.error(err);

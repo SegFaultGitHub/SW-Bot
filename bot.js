@@ -184,8 +184,11 @@ function messageListener(user, userID, channelID, message, evt) {
 	});
 }
 
+var firstConnection = true;
 discordClient.on("ready", function (evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
+	if (!firstConnection) return;
+	firstConnection = false;
 	GLOBAL.connectionDate = now();
 
 	setInterval(function () {

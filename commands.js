@@ -30,6 +30,8 @@ module.exports = function (callback) {
 		var nextAlert = config.siege.events[index].date.day * 24 * 60 * 60 +
 			config.siege.events[index].date.hours * 60 * 60 +
 			config.siege.events[index].date.minutes * 60;
+		
+		if (dateNow > nextAlert) dateNow -= 7 * 24 * 60 * 60;
 		var timeToWait = nextAlert - dateNow;
 
 		return {

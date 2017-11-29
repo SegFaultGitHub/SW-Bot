@@ -16,7 +16,7 @@ module.exports = function (callback) {
 
 	function getSiegeState() {
 		var dateNow = new Date();
-		var dateNow = dateNow.getUTCDay() * 24 * 60 * 60 +
+		dateNow = dateNow.getUTCDay() * 24 * 60 * 60 +
 			dateNow.getUTCHours() * 60 * 60 +
 			dateNow.getUTCMinutes() * 60 +
 			dateNow.getUTCSeconds();
@@ -68,7 +68,7 @@ module.exports = function (callback) {
 		if (uptime.hours) result += uptime.hours + " heure" + (uptime.hours > 1 ? "s " : " ");
 		if (uptime.minutes) result += uptime.minutes + " minute" + (uptime.minutes > 1 ? "s " : " ");
 		if (uptime.seconds) result += uptime.seconds + " seconde" + (uptime.seconds > 1 ? "s " : " ");
-		return result.substring(0, result.length - 1) || "0 seconde";
+		return result.trim() || "0 seconde";
 	}
 
 	function buildMobEmbedMessage(item) {
@@ -220,19 +220,20 @@ module.exports = function (callback) {
 					});
 				}
 				var siegeState = getSiegeState();
+				siegeState.index -= 1;
 				async.series([
 					function (callback) {
 						discordClient.sendMessage({
 							to: channelID,
 							message: "État courant :",
-							embed: config.siege.events[siegeState.index].embed
+							embed: config.siege.events[(siegeState.index + config.siege.events.length) % config.siege.events.length].embed
 						}, callback);
 					},
 					function (callback) {
 						discordClient.sendMessage({
 							to: channelID,
 							message: "État suivant (dans " + secondsToTimestamp(siegeState.timeToWait * 1000) + ") :",
-							embed: config.siege.events[(siegeState.index + 1) % config.siege.events.length].embed
+							embed: config.siege.events[siegeState.index + 1].embed
 						}, callback);
 					}
 				], function (err) {

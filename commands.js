@@ -30,7 +30,7 @@ module.exports = function (callback) {
 		var nextAlert = config.siege.events[index].date.day * 24 * 60 * 60 +
 			config.siege.events[index].date.hours * 60 * 60 +
 			config.siege.events[index].date.minutes * 60;
-		
+
 		if (dateNow > nextAlert) dateNow -= 7 * 24 * 60 * 60;
 		var timeToWait = nextAlert - dateNow;
 
@@ -441,6 +441,81 @@ module.exports = function (callback) {
 				message: "Affiche l'uptime du bot"
 			},
 			devOnly: true
+		},
+		stats: {
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length !== 0) {
+					return callback(null, {
+						type: "MISUSED"
+					});
+				}
+				embed = {
+					title: " :bar_chart: Statistiques de Summoners Bot",
+					fields: []
+				};
+				async.series({
+					uptime: function (callback) {
+						embed.fields.push({
+							name: ":clock4: Uptime",
+							value: "En ligne depuis " + secondsToTimestamp(now() - connectionDate)
+						});
+						return callback();
+					},
+					commands: function (callback) {
+						async.parallel({
+							good: function (callback) {
+								redisClient.get("stats:commands:good", callback);
+							},
+							misused: function (callback) {
+								redisClient.get("stats:commands:misused", callback);
+							},
+							top: function (callback) {
+								async.concat(Object.keys(commands), function (key, callback) {
+									redisClient.get("stats:commands:good:" + key, function (err, res) {
+										if (err) return callback(err);
+										else return callback(null, [key, res || 0]);
+									});
+								}, function (err) {
+									if (err) return callback(err);
+									else {
+										return callback(null, res.sort(sort(function (a, b) {
+											return b[1] - a[1];
+										})).slice(0, 3));
+									}
+								});
+							}
+						}, function (err, res) {
+							if (err) return callback(err);
+							embed.fields.push({
+								name: ":keyboard: Commandes",
+								value: "Commandes utilisées correctement : " + (res.good || 0) + "\n" +
+									"Commandes ratées : " + (res.misused || 0) + "\n" +
+									"Commandes les plus utilisées : \n" +
+									":first_place: " + res.top[0][0] + " : " + res.top[0][1] + "\n" +
+									":second_place: " + res.top[1][0] + " : " + res.top[1][1] + "\n" +
+									":third_place: " + res.top[2][0] + " : " + res.top[2][1] + "\n"
+							});
+							return callback();
+						});
+					}
+				}, function(err) {
+					if (err) return callback(err);
+					discordClient.sendMessage({
+						to: channelID,
+						embed: embed
+					}, function (err) {
+						if (err) return callback(err);
+						return callback(null, {
+							type: "GOOD"
+						});
+					});
+				});
+			},
+			help: {
+				usage: "!stats",
+				message: "Affiche des statistiques concernant le bot"
+			},
+			devOnly: true
 		}
 	};
 
@@ -503,9 +578,19 @@ module.exports = function (callback) {
 				},
 				function (retval, callback) {
 					if (retval.type === "MISUSED") {
-						sendHelpMessage(user, userID, channelID, message, evt, [cmd], callback);
+						async.parallel([
+							function (callback) {
+								redisClient.incr("stats:commands:good", callback);
+							},
+							function (callback) {
+								redisClient.incr("stats:commands:good:" + cmd, callback);
+							},
+							function (callback) {
+								sendHelpMessage(user, userID, channelID, message, evt, [cmd], callback);
+							}
+						], callback);
 					} else {
-						return callback();
+						redisClient.incr("stats:commands:misused", callback);
 					}
 				}
 			], callback);

@@ -143,10 +143,7 @@ function messageListener(user, userID, channelID, message, evt) {
 		function (callback) {
 			async.waterfall([
 				function (callback) {
-					redisClient.hget(redisKey, "messages", callback);
-				},
-				function (messages, callback) {
-					redisClient.hset(redisKey, "messages", Number(messages) + 1, function (err) {
+					redisClient.hincrby(redisKey, "messages", 1, function (err) {
 						if (err) return callback(err);
 						return callback();
 					});
@@ -210,7 +207,7 @@ discordClient.on("ready", function (evt) {
 			}, function(err) {
 				if (err) logger.error(err);
 				alert();
-			})
+			});
 		}, siegeState.timeToWait * 1000);
 	}, 0);
 

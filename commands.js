@@ -473,14 +473,14 @@ module.exports = function (callback) {
 								async.concat(Object.keys(commands), function (key, callback) {
 									redisClient.get("stats:commands:good:" + key, function (err, res) {
 										if (err) return callback(err);
-										else return callback(null, [key, res || 0]);
+										else return callback(null, [[key, res || 0]]);
 									});
 								}, function (err, res) {
 									if (err) return callback(err);
 									else {
-										return callback(null, res.sort(sort(function (a, b) {
+										return callback(null, res.sort(function (a, b) {
 											return b[1] - a[1];
-										})).slice(0, 3));
+										})).slice(0, 3);
 									}
 								});
 							}

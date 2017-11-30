@@ -475,7 +475,7 @@ module.exports = function (callback) {
 										if (err) return callback(err);
 										else return callback(null, [key, res || 0]);
 									});
-								}, function (err) {
+								}, function (err, res) {
 									if (err) return callback(err);
 									else {
 										return callback(null, res.sort(sort(function (a, b) {
@@ -500,6 +500,7 @@ module.exports = function (callback) {
 					}
 				}, function(err) {
 					if (err) return callback(err);
+					embed.footer = footer();
 					discordClient.sendMessage({
 						to: channelID,
 						embed: embed

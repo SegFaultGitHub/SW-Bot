@@ -470,7 +470,7 @@ module.exports = function (callback) {
 								redisClient.get("stats:commands:misused", callback);
 							},
 							top: function (callback) {
-								async.concat(Object.keys(commands), function (key, callback) {
+								async.concat(Object.keys(commands).sort(), function (key, callback) {
 									redisClient.get("stats:commands:good:" + key, function (err, res) {
 										if (err) return callback(err);
 										else return callback(null, [[key, res || 0]]);
@@ -480,7 +480,7 @@ module.exports = function (callback) {
 									else {
 										return callback(null, res.sort(function (a, b) {
 											return b[1] - a[1];
-										})).slice(0, 3);
+										}).slice(0, 3));
 									}
 								});
 							}

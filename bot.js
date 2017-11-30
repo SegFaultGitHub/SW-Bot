@@ -191,7 +191,7 @@ discordClient.on("ready", function (evt) {
 	GLOBAL.connectionDate = now();
 
 	setInterval(function () {
-		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!uptime", null, function (err) {});
+		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!stats", null, function (err) {});
 	}, 5 * 60e3);
 
 	// Siege alerts

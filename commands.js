@@ -581,6 +581,7 @@ module.exports = function (callback) {
 					if (retval.type === "MISUSED") {
 						async.parallel([
 							function (callback) {
+								if (userID === discordClient.id) return callback();
 								redisClient.incr("stats:commands:misused", callback);
 							},
 							function (callback) {
@@ -588,6 +589,7 @@ module.exports = function (callback) {
 							}
 						], callback);
 					} else {
+						if (userID === discordClient.id) return callback();
 						async.parallel([
 							function (callback) {
 								redisClient.incr("stats:commands:good", callback);
@@ -600,7 +602,10 @@ module.exports = function (callback) {
 				}
 			], callback);
 		} else {
-			return callback("Command " + cmd + " does not exist.");
+			redisClient.incr("stats:commands:misused", function(err) {
+				if (err) return callback(err);
+				return callback("Command " + cmd + " does not exist.");
+			});
 		}
 	}
 

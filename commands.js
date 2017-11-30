@@ -79,7 +79,8 @@ module.exports = function (callback) {
 			thumbnail: {
 				url: item.mob.urls.unawaken
 			},
-			fields: []
+			fields: [],
+			footer: footer()
 		};
 		switch (item.mob.element) {
 			case "dark":
@@ -137,8 +138,6 @@ module.exports = function (callback) {
 				"• **Résistance :** " + item.mob.stats[6] + "\n" +
 				"• **Précision :** " + item.mob.stats[7]
 		});
-
-		embed.footer = footer();
 
 		return embed;
 	}
@@ -303,7 +302,8 @@ module.exports = function (callback) {
 						});
 						var embed = {
 							description: "Plusieurs monstres trouvés pour la recherche \"" + name + "\", sélectionnez une réaction pour choisir le monstre à afficher",
-							fields: []
+							fields: [],
+							footer: footer()
 						};
 						async.times(res.length, function (n, callback) {
 							var item = res[n];
@@ -313,7 +313,6 @@ module.exports = function (callback) {
 							};
 							embed.fields.push(field);
 						});
-						embed.footer = footer();
 						async.waterfall([
 							function (callback) {
 								discordClient.sendMessage({
@@ -451,7 +450,8 @@ module.exports = function (callback) {
 				}
 				embed = {
 					title: " :bar_chart: Statistiques de Summoners Bot",
-					fields: []
+					fields: [],
+					footer: footer()
 				};
 				async.series({
 					uptime: function (callback) {
@@ -473,7 +473,9 @@ module.exports = function (callback) {
 								async.concat(Object.keys(commands).sort(), function (key, callback) {
 									redisClient.get("stats:commands:good:" + key, function (err, res) {
 										if (err) return callback(err);
-										else return callback(null, [[key, res || 0]]);
+										else return callback(null, [
+											[key, res || 0]
+										]);
 									});
 								}, function (err, res) {
 									if (err) return callback(err);
@@ -498,9 +500,8 @@ module.exports = function (callback) {
 							return callback();
 						});
 					}
-				}, function(err) {
+				}, function (err) {
 					if (err) return callback(err);
-					embed.footer = footer();
 					discordClient.sendMessage({
 						to: channelID,
 						embed: embed
@@ -515,6 +516,140 @@ module.exports = function (callback) {
 			help: {
 				usage: "!stats",
 				message: "Affiche des statistiques concernant le bot"
+			},
+			devOnly: true
+		},
+		todo: {
+			func: function (user, userID, channelID, message, evt, args, callback) {
+				if (args.length === 0) {
+					async.waterfall([
+						function (callback) {
+							redisClient.get("todos", callback);
+						},
+						function (todos, callback) {
+							if (!todos) {
+								return discordClient.sendMessage({
+									to: channelID,
+									embed: {
+										title: "To do's",
+										description: "Aucun todo enregistré",
+										footer: footer()
+									}
+								}, callback);
+							}
+							todos = JSON.parse(todos);
+							var embed = {
+								title: "To do's",
+								fields: [],
+								footer: footer()
+							};
+							todos.forEach(function (todo, index) {
+								embed.fields.push({
+									name: "To do #" + (index + 1),
+									value: todo
+								});
+							});
+							discordClient.sendMessage({
+								to: channelID,
+								embed: embed
+							}, callback)
+						}
+					], function (err, res) {
+						if (err) return callback(err);
+						return callback(null, {
+							type: "GOOD"
+						});
+					});
+
+				} else if (args === 1) {
+					return callback(null, {
+						type: "MISUSED"
+					});
+				} else {
+					if (args[0] === "--add" && args.length > 1) {
+						args = args.splice(1);
+						var message = args.join(" ");
+						async.waterfall([
+							function (callback) {
+								redisClient.get("todos", callback);
+							},
+							function (todos, callback) {
+								todos = todos ? JSON.parse(todos) : [];
+								todos.push(message);
+								return callback(null, todos);
+							},
+							function (todos, callback) {
+								redisClient.set("todos", JSON.stringify(todos), function(err) {
+									if (err) return callback(err);
+									return callback();
+								});
+							},
+							function (callback) {
+								discordClient.sendMessage({
+									to: channelID,
+									embed: {
+										title: "To do's",
+										description: "To do ajouté",
+										footer: footer()
+									}
+								}, callback);
+							}
+						], function (err) {
+							if (err) return callback(err);
+							return callback(null, {
+								type: "GOOD"
+							})
+						});
+					} else if (args[0] === "--remove" && args.length === 2) {
+						var index = Number(args[1]);
+						if (!index) {
+							return callback(null, {
+								type: "MISUSED"
+							});
+						}
+						index--;
+						async.waterfall([
+							function (callback) {
+								redisClient.get("todos", callback);
+							},
+							function (todos, callback) {
+								return callback(null, todos ? JSON.parse(todos) : []);
+							},
+							function (todos, callback) {
+								if (index >= todos.length) {
+									return callback(null, {
+										type: "MISUSED"
+									});
+								}
+								todos.splice(index, 1);
+								redisClient.set("todos", JSON.stringify(todos), callback);
+							},
+							function (callback) {
+								discordClient.sendMessage({
+									to: channelID,
+									embed: {
+										title: "To do's",
+										description: "To do retiré",
+										footer: footer()
+									}
+								}, callback);
+							}
+						], function (err) {
+							if (err) return callback(err);
+							return callback(null, {
+								type: "GOOD"
+							})
+						});
+					} else {
+						return callback(null, {
+							type: "MISUSED"
+						});
+					}
+				}
+			},
+			help: {
+				usage: "!todo [--remove INDEX | --add MESSAGE]",
+				message: "Affiche, ajoute, ou retire des todo"
 			},
 			devOnly: true
 		}
@@ -543,7 +678,8 @@ module.exports = function (callback) {
 				}
 				var embed = {
 					title: "Aide",
-					fields: []
+					fields: [],
+					footer: footer()
 				}
 				cmds.forEach(function (cmd) {
 					if (devCmd(cmd, userID)) return;
@@ -553,7 +689,6 @@ module.exports = function (callback) {
 					};
 					embed.fields.push(field);
 				});
-				embed.footer = footer();
 				discordClient.sendMessage({
 					to: channelID,
 					embed: embed
@@ -602,7 +737,7 @@ module.exports = function (callback) {
 				}
 			], callback);
 		} else {
-			redisClient.incr("stats:commands:misused", function(err) {
+			redisClient.incr("stats:commands:misused", function (err) {
 				if (err) return callback(err);
 				return callback("Command " + cmd + " does not exist.");
 			});

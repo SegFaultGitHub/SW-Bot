@@ -457,7 +457,7 @@ module.exports = function (callback) {
 					uptime: function (callback) {
 						embed.fields.push({
 							name: ":clock4: Uptime",
-							value: "En ligne depuis " + secondsToTimestamp(now() - connectionDate)
+							value: "• En ligne depuis " + secondsToTimestamp(now() - connectionDate)
 						});
 						return callback();
 					},
@@ -488,9 +488,9 @@ module.exports = function (callback) {
 							if (err) return callback(err);
 							embed.fields.push({
 								name: ":keyboard: Commandes",
-								value: "Commandes utilisées correctement : " + (res.good || 0) + "\n" +
-									"Commandes ratées : " + (res.misused || 0) + "\n" +
-									"Commandes les plus utilisées : \n" +
+								value: "• Commandes utilisées correctement : " + (res.good || 0) + "\n" +
+									"• Commandes ratées : " + (res.misused || 0) + "\n" +
+									"• Commandes les plus utilisées : \n" +
 									":first_place: " + res.top[0][0] + " : " + res.top[0][1] + "\n" +
 									":second_place: " + res.top[1][0] + " : " + res.top[1][1] + "\n" +
 									":third_place: " + res.top[2][0] + " : " + res.top[2][1] + "\n"
@@ -581,17 +581,21 @@ module.exports = function (callback) {
 					if (retval.type === "MISUSED") {
 						async.parallel([
 							function (callback) {
-								redisClient.incr("stats:commands:good", callback);
-							},
-							function (callback) {
-								redisClient.incr("stats:commands:good:" + cmd, callback);
+								redisClient.incr("stats:commands:misused", callback);
 							},
 							function (callback) {
 								sendHelpMessage(user, userID, channelID, message, evt, [cmd], callback);
 							}
 						], callback);
 					} else {
-						redisClient.incr("stats:commands:misused", callback);
+						async.parallel([
+							function (callback) {
+								redisClient.incr("stats:commands:good", callback);
+							},
+							function (callback) {
+								redisClient.incr("stats:commands:good:" + cmd, callback);
+							},
+						], callback);
 					}
 				}
 			], callback);

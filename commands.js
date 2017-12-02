@@ -1,4 +1,5 @@
 var async = require("async");
+var git = require("simple-git")(".");
 
 module.exports = function (callback) {
 	var emojiNumbers = [
@@ -39,6 +40,26 @@ module.exports = function (callback) {
 			index: index,
 			timeToWait: timeToWait
 		}
+	}
+
+	function gitLog(callback) {
+		git.log(function (err, data) {
+			if (err) return callback(err);
+			var date = new Date(data.latest.date);
+			date = {
+				day: date.getUTCDate(),
+				month: date.getUTCMonth() + 1,
+				year: date.getUTCFullYear(),
+				time: date.toJSON().substring(11, 19)
+			};
+			return callback(null, {
+				date: (date.day < 10 ? "0" : "") + date.day + "/" + 
+					(date.month < 10 ? "0" : "") + date.month + "/" + 
+					date.year + ", " + date.time,
+				message: data.latest.message,
+				author: data.latest.author_name
+			});
+		});
 	}
 
 	function devCmd(cmd, userID) {
@@ -458,7 +479,7 @@ module.exports = function (callback) {
 					uptime: function (callback) {
 						embed.fields.push({
 							name: ":clock4: Uptime",
-							value: "• En ligne depuis " + secondsToTimestamp(now() - connectionDate)
+							value: "• **En ligne depuis** : " + secondsToTimestamp(now() - connectionDate)
 						});
 						return callback();
 					},
@@ -491,15 +512,33 @@ module.exports = function (callback) {
 							if (err) return callback(err);
 							embed.fields.push({
 								name: ":keyboard: Commandes",
-								value: "• Commandes utilisées correctement : " + (res.good || 0) + "\n" +
-									"• Commandes ratées : " + (res.misused || 0) + "\n" +
-									"• Commandes les plus utilisées : \n" +
-									":first_place: " + res.top[0][0] + " : " + res.top[0][1] + "\n" +
-									":second_place: " + res.top[1][0] + " : " + res.top[1][1] + "\n" +
-									":third_place: " + res.top[2][0] + " : " + res.top[2][1] + "\n"
+								value: "• **Commandes réussies** : " + (res.good || 0) + "\n" +
+									"• **Commandes ratées** : " + (res.misused || 0) + "\n" +
+									"• **Commandes favorites** : \n" +
+									":first_place: *" + botConfig.prefix + res.top[0][0] + "* : " + res.top[0][1] + " utilisation" + (res.top[0][1] > 1 ? "s" : "" ) + "\n" +
+									":second_place: *" + botConfig.prefix + res.top[1][0] + "* : " + res.top[1][1] + " utilisation" + (res.top[0][1] > 1 ? "s" : "" ) + "\n" +
+									":third_place: *" + botConfig.prefix + res.top[2][0] + "* : " + res.top[2][1] + " utilisation" + (res.top[0][1] > 1 ? "s" : "" ) + "\n"
 							});
 							return callback();
 						});
+					},
+					git: function (callback) {
+						async.waterfall([
+							function (callback) {
+								logger.info("Ici");
+								callback();
+							},
+							gitLog,
+							function (log, callback) {
+								embed.fields.push({
+									name: ":minidisc: Git",
+									value: "• **Date** : " + log.date + "\n" +
+										"• **Modification** : " + log.message + "\n" +
+										"• **Auteur** : " + log.author + "\n"
+								});
+								return callback();
+							}
+						], callback);
 					}
 				}, function (err) {
 					if (err) return callback(err);

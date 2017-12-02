@@ -162,9 +162,9 @@ module.exports = function (callback) {
 				async.eachSeries(args.splice(1), function (redisKey, callback) {
 					async.waterfall([
 						function (callback) {
-							if (args[0] === "--get") return redisClient.get(redisKey, callback);
-							else if (args[0] === "--hget") return redisClient.hgetall(redisKey, callback);
-							else if (args[0] === "--del") return redisClient.del(redisKey, callback);
+							if (args[0] === "--get") return redisClient.get((options.debug ? "debug" : "") + redisKey, callback);
+							else if (args[0] === "--hget") return redisClient.hgetall((options.debug ? "debug" : "") + redisKey, callback);
+							else if (args[0] === "--del") return redisClient.del((options.debug ? "debug" : "") + redisKey, callback);
 						},
 						function (redis, callback) {
 							redis_[redisKey] = redis || null;
@@ -197,7 +197,7 @@ module.exports = function (callback) {
 						type: "MISUSED"
 					});
 				} else {
-					redisClient.del(args[0], function (err) {
+					redisClient.del((options.debug ? "debug" : "") + args[0], function (err) {
 						if (err) return callback(err);
 						return callback(null, {
 							type: "GOOD"
@@ -321,25 +321,25 @@ module.exports = function (callback) {
 								}, callback);
 							},
 							function (message, callback) {
-								redisClient.set("follow:mobList:" + channelID, message.id, function (err) {
+								redisClient.set((options.debug ? "debug" : "") + "follow:mobList:" + channelID, message.id, function (err) {
 									if (err) return callback(err);
 									return callback(null, message);
 								});
 							},
 							function (message, callback) {
-								redisClient.expire("follow:mobList:" + channelID, 300, function (err) {
+								redisClient.expire((options.debug ? "debug" : "") + "follow:mobList:" + channelID, 300, function (err) {
 									if (err) return callback(err);
 									return callback(null, message);
 								});
 							},
 							function (message, callback) {
-								redisClient.del("follow:mobList:" + channelID + ":" + message.id, function (err) {
+								redisClient.del((options.debug ? "debug" : "") + "follow:mobList:" + channelID + ":" + message.id, function (err) {
 									if (err) return callback(err);
 									return callback(null, message);
 								});
 							},
 							function (message, callback) {
-								redisClient.hset("follow:mobList:" + channelID + ":" + message.id, "count", res.length, function (err) {
+								redisClient.hset((options.debug ? "debug" : "") + "follow:mobList:" + channelID + ":" + message.id, "count", res.length, function (err) {
 									if (err) return callback(err);
 									return callback(null, message);
 								});
@@ -355,7 +355,7 @@ module.exports = function (callback) {
 										if (err) return callback(err);
 										async.waterfall([
 											function (callback) {
-												redisClient.hset("follow:mobList:" + channelID + ":" + message.id, "mob" + n, item.mob.family.redis() + ":" + item.mob.element.redis(), callback);
+												redisClient.hset((options.debug ? "debug" : "") + "follow:mobList:" + channelID + ":" + message.id, "mob" + n, item.mob.family.redis() + ":" + item.mob.element.redis(), callback);
 											}
 										], function (err) {
 											if (err) return callback(err);
@@ -364,7 +364,7 @@ module.exports = function (callback) {
 									});
 								}, function (err) {
 									if (err) return callback(err);
-									redisClient.expire("follow:mobList:" + channelID + ":" + message.id, 300, callback);
+									redisClient.expire((options.debug ? "debug" : "") + "follow:mobList:" + channelID + ":" + message.id, 300, callback);
 								});
 							}
 						], function (err) {
@@ -464,14 +464,14 @@ module.exports = function (callback) {
 					commands: function (callback) {
 						async.parallel({
 							good: function (callback) {
-								redisClient.get("stats:commands:good", callback);
+								redisClient.get((options.debug ? "debug" : "") + "stats:commands:good", callback);
 							},
 							misused: function (callback) {
-								redisClient.get("stats:commands:misused", callback);
+								redisClient.get((options.debug ? "debug" : "") + "stats:commands:misused", callback);
 							},
 							top: function (callback) {
 								async.concat(Object.keys(commands).sort(), function (key, callback) {
-									redisClient.get("stats:commands:good:" + key, function (err, res) {
+									redisClient.get((options.debug ? "debug" : "") + "stats:commands:good:" + key, function (err, res) {
 										if (err) return callback(err);
 										else return callback(null, [
 											[key, res || 0]
@@ -524,7 +524,7 @@ module.exports = function (callback) {
 				if (args.length === 0) {
 					async.waterfall([
 						function (callback) {
-							redisClient.get("todos", callback);
+							redisClient.get((options.debug ? "debug" : "") + "todos", callback);
 						},
 						function (todos, callback) {
 							if (!todos) {
@@ -571,7 +571,7 @@ module.exports = function (callback) {
 						var message = args.join(" ");
 						async.waterfall([
 							function (callback) {
-								redisClient.get("todos", callback);
+								redisClient.get((options.debug ? "debug" : "") + "todos", callback);
 							},
 							function (todos, callback) {
 								todos = todos ? JSON.parse(todos) : [];
@@ -579,7 +579,7 @@ module.exports = function (callback) {
 								return callback(null, todos);
 							},
 							function (todos, callback) {
-								redisClient.set("todos", JSON.stringify(todos), function(err) {
+								redisClient.set((options.debug ? "debug" : "") + "todos", JSON.stringify(todos), function (err) {
 									if (err) return callback(err);
 									return callback();
 								});
@@ -610,7 +610,7 @@ module.exports = function (callback) {
 						index--;
 						async.waterfall([
 							function (callback) {
-								redisClient.get("todos", callback);
+								redisClient.get((options.debug ? "debug" : "") + "todos", callback);
 							},
 							function (todos, callback) {
 								return callback(null, todos ? JSON.parse(todos) : []);
@@ -622,7 +622,7 @@ module.exports = function (callback) {
 									});
 								}
 								todos.splice(index, 1);
-								redisClient.set("todos", JSON.stringify(todos), callback);
+								redisClient.set((options.debug ? "debug" : "") + "todos", JSON.stringify(todos), callback);
 							},
 							function (callback) {
 								discordClient.sendMessage({
@@ -717,7 +717,7 @@ module.exports = function (callback) {
 						async.parallel([
 							function (callback) {
 								if (userID === discordClient.id) return callback();
-								redisClient.incr("stats:commands:misused", callback);
+								redisClient.incr((options.debug ? "debug" : "") + "stats:commands:misused", callback);
 							},
 							function (callback) {
 								sendHelpMessage(user, userID, channelID, message, evt, [cmd], callback);
@@ -727,17 +727,17 @@ module.exports = function (callback) {
 						if (userID === discordClient.id) return callback();
 						async.parallel([
 							function (callback) {
-								redisClient.incr("stats:commands:good", callback);
+								redisClient.incr((options.debug ? "debug" : "") + "stats:commands:good", callback);
 							},
 							function (callback) {
-								redisClient.incr("stats:commands:good:" + cmd, callback);
+								redisClient.incr((options.debug ? "debug" : "") + "stats:commands:good:" + cmd, callback);
 							},
 						], callback);
 					}
 				}
 			], callback);
 		} else {
-			redisClient.incr("stats:commands:misused", function (err) {
+			redisClient.incr((options.debug ? "debug" : "") + "stats:commands:misused", function (err) {
 				if (err) return callback(err);
 				return callback("Command " + cmd + " does not exist.");
 			});

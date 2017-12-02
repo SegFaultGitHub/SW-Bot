@@ -1,14 +1,23 @@
 GLOBAL.logger = require("winston");
 GLOBAL.config = require("./config.json");
 
+// Modules
 var Discord = require("discord.io");
 var async = require("async");
 var redis = require("redis");
 var merge = require("merge");
 var express = require("express");
+var commandLineArgs = require('command-line-args');
 
-GLOBAL.libs = {};
+// Command line args
+GLOBAL.options = commandLineArgs([{
+	name: 'debug',
+	alias: 'd',
+	type: Boolean
+}]);
+
 // Initilize libs
+GLOBAL.libs = {};
 async.parallel({
 	commands: require("./commands.js"),
 	swapi: require("./SWApi.js"),
@@ -26,7 +35,7 @@ app.listen(port, function () {
 app.get("/mob/:family/:element/:channelID", function (req, res) {
 	async.waterfall([
 		function (callback) {
-			redisClient.get("mob:" + req.params.family + ":" + req.params.element, callback);
+			redisClient.get((options.debug ? "debug:" : "") + "mob:" + req.params.family + ":" + req.params.element, callback);
 		}
 	], function (err, item) {
 		if (err) return res.status(500);
@@ -49,10 +58,11 @@ logger.level = "debug";
 
 // Initialize Discord Bot
 GLOBAL.discordClient = new Discord.Client({
-	token: process.env.DISCORD_TOKEN,
+	token: options.debug ? process.env.DISCORD_DEV_TOKEN : process.env.DISCORD_TOKEN,
 	autorun: true
 });
 GLOBAL.botConfig = config.botConfig;
+if (options.debug) botConfig.prefix = "?";
 
 // Initialize redis client
 GLOBAL.redisClient = redis.createClient({
@@ -118,7 +128,7 @@ function messageListener(user, userID, channelID, message, evt) {
 	loweredMessage = message.toLowerCase();
 	trimedMessage = message.trim();
 	trimedMessage = message.replace(/\s+/, " ");
-	var redisKey = evt.d.author.username + "#" + evt.d.author.discriminator;
+	var redisKey = (options.debug ? "debug:" : "") + evt.d.author.username + "#" + evt.d.author.discriminator;
 
 	async.waterfall([
 		//initRedisKeys:
@@ -155,12 +165,12 @@ function messageListener(user, userID, channelID, message, evt) {
 					});
 				},
 				function (callback) {
-					redisClient.get("channels", callback);
+					redisClient.get((options.debug ? "debug" : "") + "channels", callback);
 				},
 				function (channels, callback) {
 					channels = channels ? channels.split(",") : [];
 					if (channels.indexOf(channelID) === -1) channels.push(channelID);
-					redisClient.set("channels", channels.join(","), callback);
+					redisClient.set((options.debug ? "debug" : "") + "channels", channels.join(","), callback);
 				}
 			], function (err) {
 				if (err) return callback(err);
@@ -190,32 +200,34 @@ discordClient.on("ready", function (evt) {
 	firstConnection = false;
 	GLOBAL.connectionDate = now();
 
-	setInterval(function () {
-		libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!stats", null, function (err) {});
-	}, 5 * 60e3);
+	if (!options.debug) {
+		setInterval(function () {
+			libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!stats", null, function (err) {});
+		}, 5 * 60e3);
 
-	// Siege alerts
-	setTimeout(function alert() {
-		var siegeState = libs.commands.getSiegeState();
-		logger.info(siegeState.timeToWait);
+		// Siege alerts
+		setTimeout(function alert() {
+			var siegeState = libs.commands.getSiegeState();
+			logger.info(siegeState.timeToWait);
 
-		setTimeout(function() {
-			discordClient.sendMessage({
-				to: config.siege.channelID,
-				message: "@everyone",
-				embed: config.siege.events[siegeState.index].embed
-			}, function(err) {
-				if (err) logger.error(err);
-				alert();
-			});
-		}, siegeState.timeToWait * 1000);
-	}, 0);
+			setTimeout(function () {
+				discordClient.sendMessage({
+					to: config.siege.channelID,
+					message: "@everyone",
+					embed: config.siege.events[siegeState.index].embed
+				}, function (err) {
+					if (err) logger.error(err);
+					alert();
+				});
+			}, siegeState.timeToWait * 1000);
+		}, 0);
+	}
 
 	// Reaction
 	setTimeout(function followMessages() {
 		async.waterfall([
 			function (callback) {
-				redisClient.get("channels", callback);
+				redisClient.get((options.debug ? "debug" : "") + "channels", callback);
 			},
 			function (channels, callback) {
 				if (channels) {
@@ -224,10 +236,10 @@ discordClient.on("ready", function (evt) {
 							mobsList: function (callback) {
 								async.waterfall([
 									function (callback) {
-										redisClient.get("follow:mobList:" + channel, callback);
+										redisClient.get((options.debug ? "debug" : "") + "follow:mobList:" + channel, callback);
 									},
 									function (messageID, callback) {
-										redisClient.hgetall("follow:mobList:" + channel + ":" + messageID, function (err, res) {
+										redisClient.hgetall((options.debug ? "debug" : "") + "follow:mobList:" + channel + ":" + messageID, function (err, res) {
 											return callback(null, res, messageID);
 										});
 									},
@@ -243,7 +255,7 @@ discordClient.on("ready", function (evt) {
 												if (res.length > 1) {
 													async.waterfall([
 														function (callback) {
-															redisClient.get("mob:" + value["mob" + n], callback);
+															redisClient.get((options.debug ? "debug" : "") + "mob:" + value["mob" + n], callback);
 														},
 														function (item, callback) {
 															if (!item) return callback(null, false);
@@ -254,10 +266,10 @@ discordClient.on("ready", function (evt) {
 																if (err) return callback(err);
 																async.parallel([
 																	function (callback) {
-																		redisClient.del("follow:mobList:" + channel, callback);
+																		redisClient.del((options.debug ? "debug" : "") + "follow:mobList:" + channel, callback);
 																	},
 																	function (callback) {
-																		redisClient.del("follow:mobList:" + channel + ":" + messageID, callback);
+																		redisClient.del((options.debug ? "debug" : "") + "follow:mobList:" + channel + ":" + messageID, callback);
 																	}
 																], callback);
 															});

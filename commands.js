@@ -27,6 +27,7 @@ module.exports = function (callback) {
 			config.siege.events[index].date.minutes * 60) {
 			index++;
 		}
+		index %= config.siege.events.length;
 		var nextAlert = config.siege.events[index].date.day * 24 * 60 * 60 +
 			config.siege.events[index].date.hours * 60 * 60 +
 			config.siege.events[index].date.minutes * 60;

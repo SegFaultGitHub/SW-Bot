@@ -195,12 +195,17 @@ function messageListener(user, userID, channelID, message, evt) {
 var firstConnection = true;
 discordClient.on("ready", function (evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
+	discordClient.sendMessage({
+		to: botConfig.adminChannelID,
+		message: "(Re)connected"
+	});
 
 	if (!firstConnection) return;
 	firstConnection = false;
 	GLOBAL.connectionDate = now();
 
 	if (!options.debug) {
+		// Regular uptime notification
 		setInterval(function () {
 			libs.commands.executeCommand(null, discordClient.id, botConfig.uptimeChannelID, "!stats", null, function (err) {});
 		}, 5 * 60e3);
@@ -222,6 +227,11 @@ discordClient.on("ready", function (evt) {
 			}, siegeState.timeToWait * 1000);
 		}, 0);
 	}
+
+	// Automatic reconnection
+	setInterval(function () {
+		if (!discordClient.connected) discordClient.connect();
+	}, 60e3);
 
 	// Reaction
 	setTimeout(function followMessages() {

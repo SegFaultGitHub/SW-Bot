@@ -39,7 +39,7 @@ module.exports = function (callback) {
 		return {
 			index: index,
 			timeToWait: timeToWait
-		}
+		};
 	}
 
 	function gitLog(callback) {
@@ -524,10 +524,6 @@ module.exports = function (callback) {
 					},
 					git: function (callback) {
 						async.waterfall([
-							function (callback) {
-								logger.info("Ici");
-								callback();
-							},
 							gitLog,
 							function (log, callback) {
 								embed.fields.push({
@@ -592,7 +588,7 @@ module.exports = function (callback) {
 							discordClient.sendMessage({
 								to: channelID,
 								embed: embed
-							}, callback)
+							}, callback);
 						}
 					], function (err, res) {
 						if (err) return callback(err);
@@ -608,14 +604,14 @@ module.exports = function (callback) {
 				} else {
 					if (args[0] === "--add" && args.length > 1) {
 						args = args.splice(1);
-						var message = args.join(" ");
+						var todoMessage = args.join(" ");
 						async.waterfall([
 							function (callback) {
 								redisClient.get((options.debug ? "debug" : "") + "todos", callback);
 							},
 							function (todos, callback) {
 								todos = todos ? JSON.parse(todos) : [];
-								todos.push(message);
+								todos.push(todoMessage);
 								return callback(null, todos);
 							},
 							function (todos, callback) {
@@ -638,7 +634,7 @@ module.exports = function (callback) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
-							})
+							});
 						});
 					} else if (args[0] === "--remove" && args.length === 2) {
 						var index = Number(args[1]);
@@ -678,7 +674,7 @@ module.exports = function (callback) {
 							if (err) return callback(err);
 							return callback(null, {
 								type: "GOOD"
-							})
+							});
 						});
 					} else {
 						return callback(null, {
@@ -720,7 +716,7 @@ module.exports = function (callback) {
 					title: "Aide",
 					fields: [],
 					footer: footer()
-				}
+				};
 				cmds.forEach(function (cmd) {
 					if (devCmd(cmd, userID)) return;
 					var field = {

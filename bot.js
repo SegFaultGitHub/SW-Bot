@@ -128,7 +128,7 @@ function messageListener(user, userID, channelID, message, evt) {
 	loweredMessage = message.toLowerCase();
 	trimedMessage = message.trim();
 	trimedMessage = message.replace(/\s+/, " ");
-	var redisKey = (options.debug ? "debug:" : "") + evt.d.author.userID + "#" + evt.d.author.discriminator;
+	var redisKey = (options.debug ? "debug:" : "") + "user:" + usedID;
 
 	async.waterfall([
 		//initRedisKeys:

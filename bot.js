@@ -128,7 +128,7 @@ function messageListener(user, userID, channelID, message, evt) {
 	loweredMessage = message.toLowerCase();
 	trimedMessage = message.trim();
 	trimedMessage = message.replace(/\s+/, " ");
-	var redisKey = (options.debug ? "debug:" : "") + evt.d.author.username + "#" + evt.d.author.discriminator;
+	var redisKey = (options.debug ? "debug:" : "") + evt.d.author.userID + "#" + evt.d.author.discriminator;
 
 	async.waterfall([
 		//initRedisKeys:
@@ -139,9 +139,6 @@ function messageListener(user, userID, channelID, message, evt) {
 				},
 				function (callback) {
 					redisClient.hsetnx(redisKey, "lastMessage", 0, callback);
-				},
-				function (callback) {
-					redisClient.hset(redisKey, "id", userID, callback);
 				}
 			], function (err) {
 				if (err) return callback(err);
@@ -208,7 +205,6 @@ discordClient.on("ready", function (evt) {
 		// Siege alerts
 		setTimeout(function alert() {
 			var siegeState = libs.commands.getSiegeState();
-			logger.info(siegeState.timeToWait);
 
 			setTimeout(function () {
 				discordClient.sendMessage({
@@ -297,9 +293,13 @@ discordClient.on("ready", function (evt) {
 
 discordClient.on("message", messageListener);
 
-discordClient.on("disconnect", function () {
-	logger.info("Bot disconnected, reconnecting.");
+discordClient.on("disconnect", function (err, code) {
+	logger.info("Bot disconnected, reconnecting.\nErr: " + code);
 	discordClient.connect();
+});
+
+discordClient.on("error", function (err) {
+	logger.info(err);
 });
 
 process.on("uncaughtException", function (err) {

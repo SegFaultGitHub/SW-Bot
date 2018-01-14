@@ -37,7 +37,7 @@ module.exports = function(callback) {
 			function(callback) {
 				request.get(url, function(err, res, body) {
 					if (err) return callback(err);
-					redisClient.hset((options.debug ? "debug" : "") + "etags", url, res.headers.etag, function(err) {
+					redisClient.hset((options.debug ? "debug:" : "") + "etags", url, res.headers.etag, function(err) {
 						if (err) return callback(err);
 						return callback(null, body);
 					});
@@ -57,7 +57,7 @@ module.exports = function(callback) {
 	function isOutdated(url, callback) {
 		async.waterfall([
 			function(callback) {
-				redisClient.hget((options.debug ? "debug" : "") + "etags", url, callback);
+				redisClient.hget((options.debug ? "debug:" : "") + "etags", url, callback);
 			},
 			function(etag, callback) {
 				request.head(url, function(err, res, body) {
@@ -82,7 +82,7 @@ module.exports = function(callback) {
 				}, callback);
 			},
 			function(outdated, callback) {
-				redisClient.get((options.debug ? "debug" : "") + "mobs", function(err, mobs) {
+				redisClient.get((options.debug ? "debug:" : "") + "mobs", function(err, mobs) {
 					if (err) return	callback(err);
 					else if (mobs) return callback(null, JSON.parse(mobs), outdated);
 					else return callback(null, null, outdated);
@@ -133,7 +133,7 @@ module.exports = function(callback) {
 						], callback);
 					}, function(err, mobs) {
 						if (err) return callback(err);
-						redisClient.set((options.debug ? "debug" : "") + "mobs", JSON.stringify(mobs), function(err) {
+						redisClient.set((options.debug ? "debug:" : "") + "mobs", JSON.stringify(mobs), function(err) {
 							return callback(null, mobs);
 						});
 					});
@@ -157,7 +157,7 @@ module.exports = function(callback) {
 							isOutdated(baseURL + item.href, callback);
 						},
 						function (outdated, callback) {
-							redisClient.get((options.debug ? "debug" : "") + "mob:" + item.mob.family.redis() + ":" + item.mob.element.redis(), function (err, mob) {
+							redisClient.get((options.debug ? "debug:" : "") + "mob:" + item.mob.family.redis() + ":" + item.mob.element.redis(), function (err, mob) {
 								if (err) return callback(err);
 								else if (mob) return callback(null, JSON.parse(mob), outdated);
 								else return callback(null, null, outdated);
@@ -265,7 +265,7 @@ module.exports = function(callback) {
 									},
 									// Save mob to redis for later uses
 									function(callback) {
-										redisClient.set((options.debug ? "debug" : "") + "mob:" + item.mob.family.redis() + ":" + item.mob.element.redis(), JSON.stringify(item), function(err) {
+										redisClient.set((options.debug ? "debug:" : "") + "mob:" + item.mob.family.redis() + ":" + item.mob.element.redis(), JSON.stringify(item), function(err) {
 											if (err) return callback(err);
 											return callback(null, item);
 										});

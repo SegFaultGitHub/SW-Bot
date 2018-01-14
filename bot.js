@@ -128,7 +128,7 @@ function messageListener(user, userID, channelID, message, evt) {
 	loweredMessage = message.toLowerCase();
 	trimedMessage = message.trim();
 	trimedMessage = message.replace(/\s+/, " ");
-	var redisKey = (options.debug ? "debug:" : "") + "user:" + usedID;
+	var redisKey = (options.debug ? "debug:" : "") + "user:" + userID;
 
 	async.waterfall([
 		//initRedisKeys:
@@ -162,12 +162,12 @@ function messageListener(user, userID, channelID, message, evt) {
 					});
 				},
 				function (callback) {
-					redisClient.get((options.debug ? "debug" : "") + "channels", callback);
+					redisClient.get((options.debug ? "debug:" : "") + "channels", callback);
 				},
 				function (channels, callback) {
 					channels = channels ? channels.split(",") : [];
 					if (channels.indexOf(channelID) === -1) channels.push(channelID);
-					redisClient.set((options.debug ? "debug" : "") + "channels", channels.join(","), callback);
+					redisClient.set((options.debug ? "debug:" : "") + "channels", channels.join(","), callback);
 				}
 			], function (err) {
 				if (err) return callback(err);
@@ -233,7 +233,7 @@ discordClient.on("ready", function (evt) {
 	setTimeout(function followMessages() {
 		async.waterfall([
 			function (callback) {
-				redisClient.get((options.debug ? "debug" : "") + "channels", callback);
+				redisClient.get((options.debug ? "debug:" : "") + "channels", callback);
 			},
 			function (channels, callback) {
 				if (channels) {
@@ -242,10 +242,10 @@ discordClient.on("ready", function (evt) {
 							mobsList: function (callback) {
 								async.waterfall([
 									function (callback) {
-										redisClient.get((options.debug ? "debug" : "") + "follow:mobList:" + channel, callback);
+										redisClient.get((options.debug ? "debug:" : "") + "follow:mobList:" + channel, callback);
 									},
 									function (messageID, callback) {
-										redisClient.hgetall((options.debug ? "debug" : "") + "follow:mobList:" + channel + ":" + messageID, function (err, res) {
+										redisClient.hgetall((options.debug ? "debug:" : "") + "follow:mobList:" + channel + ":" + messageID, function (err, res) {
 											return callback(null, res, messageID);
 										});
 									},
@@ -261,7 +261,7 @@ discordClient.on("ready", function (evt) {
 												if (res.length > 1) {
 													async.waterfall([
 														function (callback) {
-															redisClient.get((options.debug ? "debug" : "") + "mob:" + value["mob" + n], callback);
+															redisClient.get((options.debug ? "debug:" : "") + "mob:" + value["mob" + n], callback);
 														},
 														function (item, callback) {
 															if (!item) return callback(null, false);
@@ -272,10 +272,10 @@ discordClient.on("ready", function (evt) {
 																if (err) return callback(err);
 																async.parallel([
 																	function (callback) {
-																		redisClient.del((options.debug ? "debug" : "") + "follow:mobList:" + channel, callback);
+																		redisClient.del((options.debug ? "debug:" : "") + "follow:mobList:" + channel, callback);
 																	},
 																	function (callback) {
-																		redisClient.del((options.debug ? "debug" : "") + "follow:mobList:" + channel + ":" + messageID, callback);
+																		redisClient.del((options.debug ? "debug:" : "") + "follow:mobList:" + channel + ":" + messageID, callback);
 																	}
 																], callback);
 															});

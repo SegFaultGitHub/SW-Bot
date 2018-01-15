@@ -139,6 +139,15 @@ function messageListener(user, userID, channelID, message, evt) {
 				},
 				function (callback) {
 					redisClient.hsetnx(redisKey, "lastMessage", 0, callback);
+				},
+				function (callback) {
+					redisClient.hsetnx(redisKey, "name", user, callback);
+				},
+				function (callback) {
+					redisClient.hsetnx(redisKey, "commands-good", 0, callback);
+				},
+				function (callback) {
+					redisClient.hsetnx(redisKey, "commands-misused", 0, callback);
 				}
 			], function (err) {
 				if (err) return callback(err);
@@ -167,7 +176,10 @@ function messageListener(user, userID, channelID, message, evt) {
 				function (channels, callback) {
 					channels = channels ? channels.split(",") : [];
 					if (channels.indexOf(channelID) === -1) channels.push(channelID);
-					redisClient.set((options.debug ? "debug:" : "") + "channels", channels.join(","), callback);
+					redisClient.set((options.debug ? "debug:" : "") + "channels", channels.join(","), function (err) {
+						if (err) return callback(err);
+						return callback();
+					});
 				}
 			], function (err) {
 				if (err) return callback(err);

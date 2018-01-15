@@ -739,6 +739,7 @@ module.exports = function (callback) {
 	}
 
 	function executeCommand(user, userID, channelID, message, evt, callback) {
+		var redisKey = (options.debug ? "debug:" : "") + "user:" + userID;
 		var args = message.split(" ");
 		var cmd = args[0].toLowerCase().substring(botConfig.prefix.length, args[0].length);
 		if (Object.keys(commands).indexOf(cmd) !== -1) {
@@ -768,12 +769,22 @@ module.exports = function (callback) {
 							function (callback) {
 								redisClient.incr((options.debug ? "debug:" : "") + "stats:commands:good:" + cmd, callback);
 							},
+							function (callback) {
+								redisClient.hincrby(redisKey, "commands-good", 1, callback);
+							}
 						], callback);
 					}
 				}
 			], callback);
 		} else {
-			redisClient.incr((options.debug ? "debug:" : "") + "stats:commands:misused", function (err) {
+			async.parallel([
+				function (callback) {
+					redisClient.incr((options.debug ? "debug:" : "") + "stats:commands:misused", callback);
+				},
+				function (callback) {
+					redisClient.hincrby(redisKey, "commands-misused", 1, callback);
+				}
+			], function (err) {
 				if (err) return callback(err);
 				return callback("Command " + cmd + " does not exist.");
 			});

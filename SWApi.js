@@ -145,7 +145,7 @@ module.exports = function(callback) {
 						if (item.mob.name === name) return callback(null, item);
 						else return callback();
 					} else {
-						if (item.mob.name !== "pang" && (item.mob.name.indexOf(name) !== -1 || item.mob.family.indexOf(name) !== -1)) return callback(null, item);
+						if ((item.mob.name.indexOf(name) !== -1 || item.mob.family.indexOf(name) !== -1)) return callback(null, item);
 						else return callback();
 					}
 				}, callback);
@@ -223,14 +223,17 @@ module.exports = function(callback) {
 									// Get monster stats and stars
 									function(handler, res, callback) {
 										if (!res) return callback(new Error("Category not found"));
-
-										var stars = res.children[6].children[1].children[1].children[4];
+										
+										var offset = 0;
+										if (item.mob.name === "elsharion") offset = 4;
+										logger.info(res.children[6 + offset]);
+										var stars = res.children[6 + offset].children[1].children[1].children[4];
 										if (stars.children) item.mob.stars = Number(stars.children[3].raw[1]);
 										else item.mob.stars = 1;
 
 										item.mob.stats = [];
 
-										var stats = res.children[22].children[1].children;
+										var stats = res.children[22 + offset].children[1].children;
 										var index = 5;
 										if (item.mob.name) {
 											index = 15;
@@ -243,7 +246,7 @@ module.exports = function(callback) {
 										if (item.mob.name) {
 											index = 5;
 										}
-										stats = res.children[30].children[1].children[index].children;
+										stats = res.children[30 + offset].children[1].children[index].children;
 										index = 1;
 										if (item.mob.name) {
 											index = 2;

@@ -226,7 +226,6 @@ module.exports = function(callback) {
 										
 										var offset = 0;
 										if (item.mob.name === "elsharion") offset = 4;
-										logger.info(res.children[6 + offset]);
 										var stars = res.children[6 + offset].children[1].children[1].children[4];
 										if (stars.children) item.mob.stars = Number(stars.children[3].raw[1]);
 										else item.mob.stars = 1;

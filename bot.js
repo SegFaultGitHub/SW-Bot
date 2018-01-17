@@ -28,7 +28,7 @@ async.parallel({
 
 // Express server
 var app = express();
-var port = 3000;
+var port = options.debug ? 3001 : 3000;
 app.listen(port, function () {
 	logger.info("Express server listening on port " + port);
 });
@@ -39,11 +39,13 @@ app.get("/mob/:family/:element/:channelID", function (req, res) {
 		}
 	], function (err, item) {
 		if (err) return res.status(500);
+		else if (!item) return res.status(404);
+		var embed = libs.commands.buildMobEmbedMessage(JSON.parse(item));
 		discordClient.sendMessage({
 			to: req.params.channelID,
-			embed: libs.commands.buildMobEmbedMessage(JSON.parse(item))
+			embed: embed
 		}, function (err) {
-			res.status(err ? 500 : 200);
+			res.status(err ? 500 : 200).send(embed);
 		});
 	});
 });
@@ -103,20 +105,6 @@ String.prototype.capitalize = function () {
 	});
 	return str.join(" ");
 };
-
-function discordClientSendMessage(options, callback) {
-	if (!options.to) return callback("No channelID set.");
-	discordClient.sendMessage(options, function (err, res) {
-		if (options.expire)
-			setTimeout(function () {
-				discordClient.deleteMessage({
-					channelID: res.channel_id,
-					messageID: res.id
-				});
-			}, options.expire * 1e3);
-		return callback(err, res);
-	});
-}
 
 GLOBAL.now = function (plus) {
 	return new Date().getTime() + (plus || 0) * 1e3;
@@ -206,10 +194,12 @@ discordClient.on("ready", function (evt) {
 	logger.info("Logged in as: " + discordClient.username + " - (" + discordClient.id + ")");
 	discordClient.sendMessage({
 		to: botConfig.adminChannelID,
-		message: "(Re)connected"
+		message: firstConnection ? "Connected" : "Reconnected"
 	});
 
 	if (!firstConnection) return;
+
+	redisClient.set((options.debug ? "debug:" : "") + "reconnections", 0);
 	firstConnection = false;
 	GLOBAL.connectionDate = now();
 
@@ -235,11 +225,6 @@ discordClient.on("ready", function (evt) {
 			}, siegeState.timeToWait * 1000);
 		}, 0);
 	}
-
-	// Automatic reconnection
-	setInterval(function () {
-		if (!discordClient.connected) discordClient.connect();
-	}, 60e3);
 
 	// Reaction
 	setTimeout(function followMessages() {
@@ -317,6 +302,7 @@ discordClient.on("message", messageListener);
 
 discordClient.on("disconnect", function (err, code) {
 	logger.info("Bot disconnected, reconnecting.\nErr: " + code);
+	redisClient.incr((options.debug ? "debug:" : "") + "reconnections", 0);
 	discordClient.connect();
 });
 

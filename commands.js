@@ -483,6 +483,19 @@ module.exports = function (callback) {
 						});
 						return callback();
 					},
+					reconnections: function (callback) {
+						async.waterfall([
+							function (callback) {
+								redisClient.get((options.debug ? "debug:" : "") + "reconnections", callback);
+							},
+							function (n, callback) {
+								embed.fields.push({
+									name: ":arrows_counterclockwise: Reconnexions",
+									value: "• **Reconnecté** " + n + (n <= 1 ? "" : "s") + " fois"
+								});
+							}
+						], callback);
+					},
 					commands: function (callback) {
 						async.parallel({
 							good: function (callback) {

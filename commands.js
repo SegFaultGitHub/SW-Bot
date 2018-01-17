@@ -493,6 +493,7 @@ module.exports = function (callback) {
 									name: ":arrows_counterclockwise: Reconnexions",
 									value: "• **Reconnecté** " + n + (n <= 1 ? "" : "s") + " fois"
 								});
+								return callback();
 							}
 						], callback);
 					},

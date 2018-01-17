@@ -491,7 +491,7 @@ module.exports = function (callback) {
 							function (n, callback) {
 								embed.fields.push({
 									name: ":arrows_counterclockwise: Reconnexions",
-									value: "• **Reconnecté** " + n + (n <= 1 ? "" : "s") + " fois"
+									value: "• **Reconnecté** " + n + " fois"
 								});
 								return callback();
 							}

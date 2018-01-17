@@ -28,7 +28,7 @@ async.parallel({
 
 // Express server
 var app = express();
-var port = options.debug ? 3001 : 3000;
+var port = options.debug ? 29061 : 2906;
 app.listen(port, function () {
 	logger.info("Express server listening on port " + port);
 });
@@ -48,6 +48,10 @@ app.get("/mob/:family/:element/:channelID", function (req, res) {
 			res.status(err ? 500 : 200).send(embed);
 		});
 	});
+});
+app.get("/disconnect", function (req, res) {
+	discordClient.disconnect();
+	res.sendStatus(200);
 });
 
 // Configure logger settings
@@ -198,9 +202,9 @@ discordClient.on("ready", function (evt) {
 	});
 
 	if (!firstConnection) return;
+	firstConnection = false;
 
 	redisClient.set((options.debug ? "debug:" : "") + "reconnections", 0);
-	firstConnection = false;
 	GLOBAL.connectionDate = now();
 
 	if (!options.debug) {
@@ -302,7 +306,7 @@ discordClient.on("message", messageListener);
 
 discordClient.on("disconnect", function (err, code) {
 	logger.info("Bot disconnected, reconnecting.\nErr: " + code);
-	redisClient.incr((options.debug ? "debug:" : "") + "reconnections", 0);
+	redisClient.incr((options.debug ? "debug:" : "") + "reconnections");
 	discordClient.connect();
 });
 

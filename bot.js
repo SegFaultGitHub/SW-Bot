@@ -123,7 +123,7 @@ function messageListener(user, userID, channelID, message, evt) {
 	var redisKey = (options.debug ? "debug:" : "") + "user:" + userID;
 
 	async.waterfall([
-		//initRedisKeys:
+		//initUserRedisKeys:
 		function (callback) {
 			async.parallel([
 				function (callback) {
@@ -147,7 +147,7 @@ function messageListener(user, userID, channelID, message, evt) {
 			});
 		},
 
-		//updateRedisKeys:
+		//updateUserRedisKeys:
 		function (callback) {
 			async.waterfall([
 				function (callback) {
@@ -172,6 +172,19 @@ function messageListener(user, userID, channelID, message, evt) {
 						if (err) return callback(err);
 						return callback();
 					});
+				}
+			], function (err) {
+				if (err) return callback(err);
+				return callback();
+			});
+		},
+
+		//updateServerKeys:
+		function (callback) {
+			async.waterfall([
+				function (callback) {
+					//discordClient.channels[channelID].guild_id
+					callback();
 				}
 			], function (err) {
 				if (err) return callback(err);
@@ -307,6 +320,7 @@ discordClient.on("message", messageListener);
 discordClient.on("disconnect", function (err, code) {
 	logger.info("Bot disconnected, reconnecting.\nErr: " + code);
 	redisClient.incr((options.debug ? "debug:" : "") + "reconnections");
+	GLOBAL.lastReconnection = Date.now();
 	discordClient.connect();
 });
 

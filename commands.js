@@ -489,9 +489,11 @@ module.exports = function (callback) {
 								redisClient.get((options.debug ? "debug:" : "") + "reconnections", callback);
 							},
 							function (n, callback) {
+								if (n === 0) return callback();
 								embed.fields.push({
 									name: ":arrows_counterclockwise: Reconnexions",
-									value: "• **Reconnecté** " + n + " fois"
+									value: "• **Reconnecté** " + n + " fois\n" +
+										"• **Dernière reconnexion il y a ** : " + secondsToTimestamp(now() - lastReconnection)
 								});
 								return callback();
 							}
@@ -531,7 +533,7 @@ module.exports = function (callback) {
 									"• **Commandes favorites** : \n" +
 									":first_place: *" + botConfig.prefix + res.top[0][0] + "* : " + res.top[0][1] + " utilisation" + (res.top[0][1] > 1 ? "s" : "" ) + "\n" +
 									":second_place: *" + botConfig.prefix + res.top[1][0] + "* : " + res.top[1][1] + " utilisation" + (res.top[1][1] > 1 ? "s" : "" ) + "\n" +
-									":third_place: *" + botConfig.prefix + res.top[2][0] + "* : " + res.top[2][1] + " utilisation" + (res.top[2][1] > 1 ? "s" : "" ) + "\n"
+									":third_place: *" + botConfig.prefix + res.top[2][0] + "* : " + res.top[2][1] + " utilisation" + (res.top[2][1] > 1 ? "s" : "" )
 							});
 							return callback();
 						});
@@ -544,7 +546,7 @@ module.exports = function (callback) {
 									name: ":minidisc: Git",
 									value: "• **Date** : " + log.date + "\n" +
 										"• **Modification** : " + log.message + "\n" +
-										"• **Auteur** : " + log.author + "\n"
+										"• **Auteur** : " + log.author
 								});
 								return callback();
 							}
